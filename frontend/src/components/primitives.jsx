@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
 import clsx from "clsx";
-import type { Priority, Tone } from "../types";
+import { AlertTriangle, Frown, HelpCircle, Meh, Smile, Zap as ZapIcon } from "lucide-react";
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({ className, children }) {
   return (
     <div
       className={clsx(
@@ -15,13 +14,13 @@ export function Card({ className, children }: { className?: string; children: Re
   );
 }
 
-const PRIORITY_STYLES: Record<Priority, string> = {
+const PRIORITY_STYLES = {
   High: "bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500/30",
   Medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30",
   Low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30",
 };
 
-export function PriorityBadge({ priority, escalated }: { priority: Priority; escalated?: boolean }) {
+export function PriorityBadge({ priority, escalated }) {
   return (
     <span
       className={clsx(
@@ -36,26 +35,27 @@ export function PriorityBadge({ priority, escalated }: { priority: Priority; esc
   );
 }
 
-const TONE_STYLES: Record<Tone, { emoji: string; className: string }> = {
-  neutral: { emoji: "😐", className: "bg-slate-500/10 text-slate-600 dark:text-slate-300" },
-  frustrated: { emoji: "😤", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
-  angry: { emoji: "😡", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
-  urgent: { emoji: "⏱️", className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
-  confused: { emoji: "❓", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  positive: { emoji: "🙂", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+const TONE_STYLES = {
+  neutral: { icon: Meh, className: "bg-slate-500/10 text-slate-600 dark:text-slate-300" },
+  frustrated: { icon: Frown, className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  angry: { icon: AlertTriangle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+  urgent: { icon: ZapIcon, className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+  confused: { icon: HelpCircle, className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  positive: { icon: Smile, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
 };
 
-export function ToneBadge({ tone }: { tone: Tone }) {
-  const s = TONE_STYLES[tone];
+export function ToneBadge({ tone }) {
+  const s = TONE_STYLES[tone] ?? TONE_STYLES.neutral;
+  const Icon = s.icon;
   return (
     <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium capitalize", s.className)}>
-      <span>{s.emoji}</span>
+      <Icon size={12} />
       {tone}
     </span>
   );
 }
 
-export function CategoryPill({ children }: { children: ReactNode }) {
+export function CategoryPill({ children }) {
   return (
     <span className="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand dark:text-brand-dim">
       {children}
@@ -63,7 +63,7 @@ export function CategoryPill({ children }: { children: ReactNode }) {
   );
 }
 
-export function ConfidenceMeter({ value, ambiguous }: { value: number; ambiguous?: boolean }) {
+export function ConfidenceMeter({ value, ambiguous }) {
   const pct = Math.round(value * 100);
   const color = pct >= 75 ? "bg-emerald-500" : pct >= 45 ? "bg-amber-500" : "bg-red-500";
   return (
@@ -81,14 +81,14 @@ export function ConfidenceMeter({ value, ambiguous }: { value: number; ambiguous
   );
 }
 
-export function ModePill({ mode }: { mode: string }) {
-  const label: Record<string, string> = {
+export function ModePill({ mode }) {
+  const label = {
     live: "Claude (live)",
     mock: "Keyword baseline",
     repaired: "Claude (self-repaired JSON)",
     fallback: "Fallback baseline",
   };
-  const style: Record<string, string> = {
+  const style = {
     live: "bg-brand/10 text-brand dark:text-brand-dim",
     mock: "bg-slate-500/10 text-slate-500 dark:text-slate-300",
     repaired: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -101,12 +101,7 @@ export function ModePill({ mode }: { mode: string }) {
   );
 }
 
-export function Button({
-  children,
-  className,
-  variant = "primary",
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" }) {
+export function Button({ children, className, variant = "primary", ...rest }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-brand text-white hover:bg-indigo-600 active:scale-[0.98] shadow-sm shadow-brand/30",

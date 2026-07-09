@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Check, MessageSquareWarning, Sparkles, X } from "lucide-react";
+import { Braces, Check, ChevronDown, ChevronUp, MessageSquareWarning, Sparkles, X } from "lucide-react";
 import { api } from "../api";
-import type { TicketResult } from "../types";
-import { CATEGORIES, PRIORITIES, TEAMS } from "../types";
+import { CATEGORIES, PRIORITIES, TEAMS } from "../constants";
 import { Button, Card, CategoryPill, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "./primitives";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }) {
   return (
     <div>
       <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{label}</div>
@@ -14,16 +13,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function ResultCard({ result, onUpdated }: { result: TicketResult; onUpdated?: (r: TicketResult) => void }) {
+export function ResultCard({ result, onUpdated }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [correctedCategory, setCorrectedCategory] = useState(result.category);
   const [correctedPriority, setCorrectedPriority] = useState(result.priority);
   const [correctedTeam, setCorrectedTeam] = useState(result.team);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<TicketResult | null>(
-    result.reviewed ? result : null,
-  );
+  const [showJson, setShowJson] = useState(false);
+  const [done, setDone] = useState(result.reviewed ? result : null);
 
   async function submitAgree() {
     setSubmitting(true);
@@ -105,11 +103,27 @@ export function ResultCard({ result, onUpdated }: { result: TicketResult; onUpda
           <p className="mt-1.5 text-xs text-ink/50 dark:text-ink-dark/50">{result.baseline.reasoning}</p>
           {(result.baseline.category !== result.category || result.baseline.priority !== result.priority) && (
             <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-              ⚠ Disagrees with Claude's classification — a common failure mode for keyword matching (sarcasm, negation, multi-issue tickets).
+              Disagrees with Claude's classification — a common failure mode for keyword matching (sarcasm, negation, multi-issue tickets).
             </p>
           )}
         </div>
       )}
+
+      <div className="mt-4 border-t border-black/5 dark:border-white/10 pt-3">
+        <button
+          onClick={() => setShowJson((v) => !v)}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark"
+        >
+          <Braces size={13} />
+          {showJson ? "Hide raw JSON" : "View raw JSON"}
+          {showJson ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+        {showJson && (
+          <pre className="thin-scroll mt-2 max-h-64 overflow-auto rounded-lg bg-black/[0.04] dark:bg-white/[0.06] p-3 text-[11px] leading-relaxed text-ink/70 dark:text-ink-dark/70">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        )}
+      </div>
 
       <div className="mt-4 border-t border-black/5 dark:border-white/10 pt-3">
         {done ? (
@@ -134,7 +148,7 @@ export function ResultCard({ result, onUpdated }: { result: TicketResult; onUpda
                 Category
                 <select
                   value={correctedCategory}
-                  onChange={(e) => setCorrectedCategory(e.target.value as typeof correctedCategory)}
+                  onChange={(e) => setCorrectedCategory(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm"
                 >
                   {CATEGORIES.map((c) => (
@@ -146,7 +160,7 @@ export function ResultCard({ result, onUpdated }: { result: TicketResult; onUpda
                 Priority
                 <select
                   value={correctedPriority}
-                  onChange={(e) => setCorrectedPriority(e.target.value as typeof correctedPriority)}
+                  onChange={(e) => setCorrectedPriority(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm"
                 >
                   {PRIORITIES.map((p) => (
@@ -158,7 +172,7 @@ export function ResultCard({ result, onUpdated }: { result: TicketResult; onUpda
                 Team
                 <select
                   value={correctedTeam}
-                  onChange={(e) => setCorrectedTeam(e.target.value as typeof correctedTeam)}
+                  onChange={(e) => setCorrectedTeam(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm"
                 >
                   {TEAMS.map((t) => (

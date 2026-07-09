@@ -1,10 +1,7 @@
 import { BarChart3, Clock, History, Moon, Sun, Ticket, Zap } from "lucide-react";
 import clsx from "clsx";
-import type { HealthInfo } from "../types";
 
-export type Tab = "route" | "race" | "demo" | "analytics" | "history";
-
-const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+const TABS = [
   { id: "route", label: "Route a Ticket", icon: Ticket },
   { id: "race", label: "Manual vs AI Race", icon: Clock },
   { id: "demo", label: "Demo (20 Tickets)", icon: Zap },
@@ -12,19 +9,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: "history", label: "History", icon: History },
 ];
 
-export function Header({
-  tab,
-  onTab,
-  theme,
-  onToggleTheme,
-  health,
-}: {
-  tab: Tab;
-  onTab: (t: Tab) => void;
-  theme: string;
-  onToggleTheme: () => void;
-  health: HealthInfo | null;
-}) {
+export function Header({ tab, onTab, theme, onToggleTheme, health }) {
   return (
     <header className="border-b border-black/8 dark:border-white/10">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

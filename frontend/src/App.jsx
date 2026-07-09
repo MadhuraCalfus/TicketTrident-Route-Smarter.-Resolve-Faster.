@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import type { HealthInfo } from "./types";
 import { useTheme } from "./hooks/useTheme";
-import { Header, type Tab } from "./components/Header";
+import { Header } from "./components/Header";
 import { RouteTicketTab } from "./components/RouteTicketTab";
 import { RaceTab } from "./components/RaceTab";
 import { DemoTab } from "./components/DemoTab";
@@ -10,9 +9,9 @@ import { AnalyticsTab } from "./components/AnalyticsTab";
 import { HistoryTab } from "./components/HistoryTab";
 
 function App() {
-  const [tab, setTab] = useState<Tab>("route");
+  const [tab, setTab] = useState("route");
   const { theme, toggle } = useTheme();
-  const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [health, setHealth] = useState(null);
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => {});

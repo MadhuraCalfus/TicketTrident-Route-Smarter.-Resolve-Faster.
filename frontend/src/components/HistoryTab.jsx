@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { api } from "../api";
-import type { TicketResult } from "../types";
 import { Card, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "./primitives";
 import { ResultCard } from "./ResultCard";
 
 export function HistoryTab() {
-  const [tickets, setTickets] = useState<TicketResult[]>([]);
+  const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
-  const [selected, setSelected] = useState<TicketResult | null>(null);
+  const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
 
   async function load() {

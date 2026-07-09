@@ -168,7 +168,7 @@ Interactive docs at `http://localhost:8000/docs` (FastAPI's built-in Swagger UI)
 | LLM | Claude API, Structured Outputs (`output_config.format`) | JSON Schema enforcement at the API level, not a prompt convention — the actual mechanism this mission is teaching. |
 | Backend | FastAPI + Pydantic | Schema-first by default; the same `TicketClassification` model that validates Claude's output also generates the OpenAPI docs. |
 | Storage | SQLite | Real persistence and an audit trail, zero infra. |
-| Frontend | React + TypeScript + Vite | Fast dev loop, typed API contracts shared conceptually with the Pydantic models. |
+| Frontend | React + JavaScript + Vite | Fast dev loop with no build-time type layer; API contracts are documented in `src/constants.js` and by convention with the Pydantic models. |
 | Styling | Tailwind CSS v4 | Design tokens (`@theme`) keep light/dark and priority/tone colors consistent across every component without a component library dependency. |
 | Charts | Recharts | Composable, React-native chart primitives for the analytics dashboard. |
 
@@ -193,8 +193,8 @@ smart-ticket-router/
 ├── frontend/
 │   └── src/
 │       ├── components/        RouteTicketTab, RaceTab, DemoTab, AnalyticsTab, HistoryTab, ...
-│       ├── api.ts             typed fetch client
-│       └── types.ts           shared types (mirrors backend Pydantic models)
+│       ├── api.js             fetch client
+│       └── constants.js       category/priority/team option lists (mirrors backend Pydantic enums)
 ├── dev.sh                     one-command local dev (both servers)
 └── README.md
 ```

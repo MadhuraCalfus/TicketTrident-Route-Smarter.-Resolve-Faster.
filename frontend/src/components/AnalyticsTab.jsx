@@ -2,18 +2,17 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { RefreshCw } from "lucide-react";
 import { api } from "../api";
-import type { AnalyticsData } from "../types";
 import { Card } from "./primitives";
 
-const PRIORITY_COLORS: Record<string, string> = { High: "#e0524c", Medium: "#d99a2b", Low: "#2fa66a" };
+const PRIORITY_COLORS = { High: "#e0524c", Medium: "#d99a2b", Low: "#2fa66a" };
 const PALETTE = ["#5b4dff", "#7a70ff", "#e0524c", "#d99a2b", "#2fa66a", "#3b82f6", "#ec4899", "#14b8a6"];
 
-function toChartData(breakdown: Record<string, number>) {
+function toChartData(breakdown) {
   return Object.entries(breakdown).map(([name, value]) => ({ name, value }));
 }
 
 export function AnalyticsTab() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   async function load() {
@@ -142,7 +141,7 @@ export function AnalyticsTab() {
   );
 }
 
-function StatCard({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function StatCard({ label, value, sub, highlight }) {
   return (
     <Card className={`p-4 text-center ${highlight ? "ring-2 ring-brand/40" : ""}`}>
       <div className={`font-display text-2xl font-bold ${highlight ? "text-brand dark:text-brand-dim" : ""}`}>{value}</div>

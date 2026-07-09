@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { CheckCircle2, Loader2, PlayCircle, XCircle } from "lucide-react";
 import { api } from "../api";
-import type { RepairExample, SampleTicket, TicketResult } from "../types";
 import { Button, Card, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "./primitives";
 
 export function DemoTab() {
-  const [samples, setSamples] = useState<SampleTicket[]>([]);
+  const [samples, setSamples] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<TicketResult[]>([]);
+  const [results, setResults] = useState([]);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [repairExamples, setRepairExamples] = useState<RepairExample[] | null>(null);
+  const [repairExamples, setRepairExamples] = useState(null);
   const [repairLoading, setRepairLoading] = useState(false);
 
   async function loadRepairDemo() {
@@ -146,7 +145,7 @@ export function DemoTab() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }) {
   return (
     <div className="rounded-xl border border-black/10 dark:border-white/15 p-3 text-center">
       <div className="font-display text-2xl font-bold">{value}</div>

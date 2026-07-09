@@ -1,31 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Flag, Play, RotateCcw, Timer, Zap } from "lucide-react";
 import { api } from "../api";
-import type { Category, Priority, SampleTicket, Team, TicketResult } from "../types";
-import { CATEGORIES, PRIORITIES, TEAMS } from "../types";
+import { CATEGORIES, PRIORITIES, TEAMS } from "../constants";
 import { Button, Card, PriorityBadge } from "./primitives";
 
-type Stage = "pick" | "manual-timing" | "manual-done" | "ai-timing" | "result";
-
 export function RaceTab() {
-  const [samples, setSamples] = useState<SampleTicket[]>([]);
-  const [ticket, setTicket] = useState<string>("");
-  const [stage, setStage] = useState<Stage>("pick");
+  const [samples, setSamples] = useState([]);
+  const [ticket, setTicket] = useState("");
+  const [stage, setStage] = useState("pick");
   const [elapsed, setElapsed] = useState(0);
   const [manualTime, setManualTime] = useState(0);
-  const [manualCategory, setManualCategory] = useState<Category>("General Inquiry");
-  const [manualPriority, setManualPriority] = useState<Priority>("Medium");
-  const [manualTeam, setManualTeam] = useState<Team>("Triage");
-  const [aiResult, setAiResult] = useState<TicketResult | null>(null);
+  const [manualCategory, setManualCategory] = useState("General Inquiry");
+  const [manualPriority, setManualPriority] = useState("Medium");
+  const [manualTeam, setManualTeam] = useState("Triage");
+  const [aiResult, setAiResult] = useState(null);
   const [aiClockMs, setAiClockMs] = useState(0);
-  const startRef = useRef<number>(0);
-  const intervalRef = useRef<number | null>(null);
+  const startRef = useRef(0);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     api.sampleTickets().then((r) => setSamples(r.tickets)).catch(() => {});
   }, []);
 
-  function pickTicket(text: string) {
+  function pickTicket(text) {
     setTicket(text);
     setStage("pick");
     setAiResult(null);
@@ -119,21 +116,21 @@ export function RaceTab() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <label className="text-xs">
                 Category
-                <select value={manualCategory} onChange={(e) => setManualCategory(e.target.value as Category)}
+                <select value={manualCategory} onChange={(e) => setManualCategory(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm">
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </label>
               <label className="text-xs">
                 Priority
-                <select value={manualPriority} onChange={(e) => setManualPriority(e.target.value as Priority)}
+                <select value={manualPriority} onChange={(e) => setManualPriority(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm">
                   {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </label>
               <label className="text-xs">
                 Team
-                <select value={manualTeam} onChange={(e) => setManualTeam(e.target.value as Team)}
+                <select value={manualTeam} onChange={(e) => setManualTeam(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1.5 text-sm">
                   {TEAMS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -209,7 +206,7 @@ export function RaceTab() {
   );
 }
 
-function RaceBar({ label, seconds, maxSeconds, color }: { label: string; seconds: number; maxSeconds: number; color: string }) {
+function RaceBar({ label, seconds, maxSeconds, color }) {
   const pct = maxSeconds > 0 ? Math.max(4, (seconds / maxSeconds) * 100) : 4;
   return (
     <div>
