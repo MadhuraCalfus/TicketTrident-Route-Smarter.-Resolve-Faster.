@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+
+  --color-canvas: #f6f5f2;
+  --color-canvas-dark: #0e0f13;
+  --color-surface: #ffffff;
+  --color-surface-dark: #17181e;
+  --color-ink: #16161a;
+  --color-ink-dark: #eef0f5;
+
+  --color-brand: #5b4dff;
+  --color-brand-dim: #7a70ff;
+  --color-high: #e0524c;
+  --color-medium: #d99a2b;
+  --color-low: #2fa66a;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+:root[data-theme="dark"] body {
+  background: var(--color-canvas-dark);
+  color: var(--color-ink-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background: var(--color-canvas-dark);
+    color: var(--color-ink-dark);
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* subtle grain/gradient backdrop, theme aware */
+.app-backdrop {
+  background-image: radial-gradient(circle at 15% 0%, rgba(91, 77, 255, 0.10), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(224, 82, 76, 0.08), transparent 45%);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: white;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(91, 77, 255, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(91, 77, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(91, 77, 255, 0); }
+}
+.pulse-ring {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+
+/* thin scrollbars for the history/table panels */
+.thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,140,0.35); border-radius: 8px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
