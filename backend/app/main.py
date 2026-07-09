@@ -12,7 +12,7 @@ from . import analytics, classifier, store
 from .models import DemoRunRequest, FeedbackRequest, RouteRequest
 from .sample_tickets import SAMPLE_TICKETS
 
-app = FastAPI(title="Smart Ticket Router", version="1.0.0")
+app = FastAPI(title="TicketTrident", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

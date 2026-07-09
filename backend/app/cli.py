@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Command-line interface for the Smart Ticket Router.
+"""Command-line interface for TicketTrident.
 
 Usage:
     python -m app.cli route "The app keeps crashing when I upload a photo"
@@ -76,7 +76,7 @@ def cmd_health(args) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="ticketrouter", description="Smart Ticket Router CLI")
+    parser = argparse.ArgumentParser(prog="tickettrident", description="TicketTrident CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_route = sub.add_parser("route", help="Classify a single ticket message")
