@@ -65,6 +65,23 @@ class BaselineResult(BaseModel):
     reasoning: str
 
 
+class ModelResult(BaseModel):
+    """One provider's answer for a ticket, used when multiple live providers
+    are configured and compare=True — shown side by side in the UI."""
+
+    provider: str
+    model_used: str
+    mode: str
+    latency_ms: int
+    category: Category
+    priority: Priority
+    team: Team
+    tone: Tone
+    confidence: float
+    is_ambiguous: bool
+    reasoning: str
+
+
 class TicketResult(BaseModel):
     id: str
     message: str
@@ -82,6 +99,7 @@ class TicketResult(BaseModel):
     manual_time_seconds: Optional[float] = None
     created_at: str
     baseline: Optional[BaselineResult] = None
+    model_results: Optional[list[ModelResult]] = None
     corrected_category: Optional[Category] = None
     corrected_priority: Optional[Priority] = None
     corrected_team: Optional[Team] = None

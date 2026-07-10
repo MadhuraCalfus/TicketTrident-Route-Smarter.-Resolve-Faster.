@@ -60,7 +60,7 @@ export function RouteTicketTab() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <label className="flex items-center gap-2 text-xs text-ink/60 dark:text-ink-dark/60">
             <input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} className="accent-current" />
-            Compare against keyword baseline
+            Compare against keyword baseline &amp; other configured models
           </label>
           <button
             onClick={loadRandomSample}

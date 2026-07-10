@@ -60,6 +60,9 @@ def init_db() -> None:
                 feedback_note TEXT
             )
         """)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(tickets)").fetchall()}
+        if "model_results_json" not in cols:
+            conn.execute("ALTER TABLE tickets ADD COLUMN model_results_json TEXT")
 
 
 def save_ticket(result: dict) -> None:
@@ -68,14 +71,15 @@ def save_ticket(result: dict) -> None:
             """INSERT INTO tickets (
                 id, message, category, priority, team, tone, confidence, is_ambiguous,
                 escalated, reasoning, model_used, mode, latency_ms, manual_time_seconds,
-                created_at, baseline_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                created_at, baseline_json, model_results_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 result["id"], result["message"], result["category"], result["priority"],
                 result["team"], result["tone"], result["confidence"], int(result["is_ambiguous"]),
                 int(result["escalated"]), result["reasoning"], result["model_used"], result["mode"],
                 result["latency_ms"], result.get("manual_time_seconds"), result["created_at"],
                 json.dumps(result["baseline"]) if result.get("baseline") else None,
+                json.dumps(result["model_results"]) if result.get("model_results") else None,
             ),
         )
 
@@ -98,6 +102,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
     d["escalated"] = bool(d["escalated"])
     d["reviewed"] = bool(d["reviewed"])
     d["baseline"] = json.loads(d.pop("baseline_json")) if d.get("baseline_json") else None
+    d["model_results"] = json.loads(d.pop("model_results_json")) if d.get("model_results_json") else None
     return d
 
 

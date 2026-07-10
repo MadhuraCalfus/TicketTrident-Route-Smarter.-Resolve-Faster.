@@ -109,6 +109,38 @@ export function ResultCard({ result, onUpdated }) {
         </div>
       )}
 
+      {result.model_results && result.model_results.length > 1 && (
+        <div className="mt-4 space-y-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
+            Model comparison — same ticket, every configured provider
+          </div>
+          {result.model_results.map((m, i) => (
+            <div key={m.provider} className="rounded-xl border border-black/10 dark:border-white/15 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+                    {m.provider}
+                  </span>
+                  {i === 0 && (
+                    <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand dark:text-brand-dim">
+                      used for routing
+                    </span>
+                  )}
+                  <CategoryPill>{m.category}</CategoryPill>
+                  <PriorityBadge priority={m.priority} />
+                  <ToneBadge tone={m.tone} />
+                </div>
+                <span className="text-xs text-ink/40 dark:text-ink-dark/40">{m.model_used} · {m.latency_ms}ms</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-xs text-ink/60 dark:text-ink-dark/60">{m.reasoning}</p>
+                <ConfidenceMeter value={m.confidence} ambiguous={m.is_ambiguous} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mt-4 border-t border-black/5 dark:border-white/10 pt-3">
         <button
           onClick={() => setShowJson((v) => !v)}
