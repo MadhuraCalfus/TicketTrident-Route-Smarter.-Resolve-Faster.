@@ -60,6 +60,8 @@ important the ticket is.
 - tone is the customer's emotional state as written (neutral, frustrated, angry, urgent, confused, \
 positive) - judge it from the actual words used, not the topic.
 - reasoning must be exactly one sentence, specific to this ticket's content.
+- The ticket may be written in any language. Understand it in its original language, but always \
+write `reasoning` in English, regardless of what language the ticket itself is in.
 - Priority guidance: security concerns, data loss, and outages affecting the customer's ability to \
 work are usually High. Angry or urgent tone on a billing or account-access issue should usually be \
 High too. Cosmetic issues, feature requests, and calm general questions are usually Low or Medium.
