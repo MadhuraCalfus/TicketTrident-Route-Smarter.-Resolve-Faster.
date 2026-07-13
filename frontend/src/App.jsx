@@ -27,10 +27,6 @@ function App() {
         {tab === "analytics" && <AnalyticsTab />}
         {tab === "history" && <HistoryTab />}
       </main>
-      <footer className="mx-auto max-w-6xl px-4 py-8 text-center text-xs text-ink/30 dark:text-ink-dark/30">
-        Built for Port·04 — The Senate of Gods · Structured outputs, retry/repair, and a keyword baseline
-        for comparison, all running against a real FastAPI backend.
-      </footer>
     </div>
   );
 }
