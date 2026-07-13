@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { RefreshCw } from "lucide-react";
+import { FileDown, RefreshCw } from "lucide-react";
 import { api } from "../api";
+import { generateAnalyticsPdf } from "../reportPdf";
 import { Card } from "./primitives";
 
 const PRIORITY_COLORS = { High: "#e0524c", Medium: "#d99a2b", Low: "#2fa66a" };
@@ -46,12 +47,20 @@ export function AnalyticsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold">Analytics</h2>
-        <button
-          onClick={load}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink/50 dark:text-ink-dark/50 hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => generateAnalyticsPdf(data)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink/50 dark:text-ink-dark/50 hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <FileDown size={13} /> Export PDF
+          </button>
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink/50 dark:text-ink-dark/50 hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
