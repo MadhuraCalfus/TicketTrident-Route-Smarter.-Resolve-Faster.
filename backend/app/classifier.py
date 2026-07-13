@@ -62,9 +62,13 @@ positive) - judge it from the actual words used, not the topic.
 - reasoning must be exactly one sentence, specific to this ticket's content.
 - The ticket may be written in any language. Understand it in its original language, but always \
 write `reasoning` in English, regardless of what language the ticket itself is in.
-- Priority guidance: security concerns, data loss, and outages affecting the customer's ability to \
-work are usually High. Angry or urgent tone on a billing or account-access issue should usually be \
-High too. Cosmetic issues, feature requests, and calm general questions are usually Low or Medium.
+- Priority guidance: judge priority from objective severity only — security concerns, data loss, \
+and outages that stop the customer from working are High; routine billing/account/technical \
+issues are Medium; cosmetic issues, feature requests, and calm general questions are Low. Ignore \
+urgency-signaling words and formatting (e.g. "urgent", "ASAP", "immediately", "now", ALL CAPS, \
+exclamation points, angry language) when deciding priority — pretend the ticket was written in a \
+flat, calm voice and rate priority on the underlying issue alone. A separate rule outside your \
+control already handles raising priority for angry/urgent tone, so do not do it yourself.
 - A one-word or near-empty message should still be classified: default toward General Inquiry / \
 Triage with low confidence and is_ambiguous=true, and use reasoning to say what's missing."""
 
