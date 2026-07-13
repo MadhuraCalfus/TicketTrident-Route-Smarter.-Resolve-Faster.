@@ -75,7 +75,7 @@ export function RaceTab() {
         <h2 className="font-display text-lg font-semibold">Manual vs. AI — the actual race</h2>
         <p className="mt-1 text-sm text-ink/60 dark:text-ink-dark/60">
           No assumed numbers here. Pick a ticket, classify it yourself with a real stopwatch running,
-          then let Claude route the exact same ticket and compare real, measured times.
+          then let AI route the exact same ticket and compare real, measured times.
         </p>
 
         {stage === "pick" && (

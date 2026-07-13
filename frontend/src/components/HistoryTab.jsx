@@ -59,7 +59,7 @@ export function HistoryTab() {
                   <PriorityBadge priority={t.priority} escalated={t.escalated} />
                   <ToneBadge tone={t.tone} />
                   <span className="text-xs text-ink/50 dark:text-ink-dark/50">{t.category} → {t.team}</span>
-                  <ModePill mode={t.mode} />
+                  <ModePill mode={t.mode} model={t.model_used} />
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <ConfidenceMeter value={t.confidence} ambiguous={t.is_ambiguous} />

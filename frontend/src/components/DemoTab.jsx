@@ -98,7 +98,7 @@ export function DemoTab() {
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.team}</td>
                   <td className="px-3 py-2.5"><ToneBadge tone={r.tone} /></td>
                   <td className="px-3 py-2.5"><ConfidenceMeter value={r.confidence} ambiguous={r.is_ambiguous} /></td>
-                  <td className="px-3 py-2.5"><ModePill mode={r.mode} /></td>
+                  <td className="px-3 py-2.5"><ModePill mode={r.mode} model={r.model_used} /></td>
                 </tr>
               ))}
             </tbody>
@@ -110,7 +110,7 @@ export function DemoTab() {
           <div>
             <h3 className="text-sm font-semibold">What happens when the AI returns malformed JSON?</h3>
             <p className="mt-1 text-xs text-ink/60 dark:text-ink-dark/60">
-              Structured Outputs (a JSON Schema passed to Claude) prevents most of this — but every response still
+              Structured Outputs (a JSON Schema passed to AI) prevents most of this — but every response still
               goes through a repair step as defense-in-depth. These are deterministic examples, independent of any
               live API call.
             </p>

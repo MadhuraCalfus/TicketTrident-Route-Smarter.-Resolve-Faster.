@@ -42,8 +42,7 @@ export function RouteTicketTab() {
       <Card className="p-6">
         <h2 className="font-display text-lg font-semibold">Route a ticket</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-ink/60 dark:text-ink-dark/60">
-          Paste any support message. Claude returns category, priority, team, and a one-line reason as
-          strict, schema-validated JSON.
+          Paste any support message. 
         </p>
 
         <textarea

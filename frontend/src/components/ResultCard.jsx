@@ -63,7 +63,7 @@ export function ResultCard({ result, onUpdated }) {
           <ToneBadge tone={result.tone} />
         </div>
         <div className="flex items-center gap-2">
-          <ModePill mode={result.mode} />
+          <ModePill mode={result.mode} model={result.model_used} />
           <span className="text-xs text-ink/40 dark:text-ink-dark/40">{result.latency_ms}ms</span>
         </div>
       </div>

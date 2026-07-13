@@ -81,11 +81,11 @@ export function ConfidenceMeter({ value, ambiguous }) {
   );
 }
 
-export function ModePill({ mode }) {
+export function ModePill({ mode, model }) {
   const label = {
-    live: "Claude (live)",
+    live: model ? `${model} (live)` : "Live",
     mock: "Keyword baseline",
-    repaired: "Claude (self-repaired JSON)",
+    repaired: model ? `${model} (self-repaired JSON)` : "Self-repaired JSON",
     fallback: "Fallback baseline",
   };
   const style = {
