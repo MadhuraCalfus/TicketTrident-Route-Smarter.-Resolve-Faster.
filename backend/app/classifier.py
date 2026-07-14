@@ -26,7 +26,6 @@ import json
 import os
 import re
 import time
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -399,7 +398,6 @@ def build_ticket_result(message: str, manual_time_seconds: float | None, compare
     priority, escalated = _escalate(c.priority, c.tone)
 
     result = {
-        "id": str(uuid.uuid4()),
         "message": message,
         "category": c.category.value,
         "priority": priority.value,

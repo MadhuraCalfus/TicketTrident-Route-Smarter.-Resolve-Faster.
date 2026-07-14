@@ -5,8 +5,8 @@ import { api } from "../api";
 import { generateAnalyticsPdf } from "../reportPdf";
 import { Card } from "./primitives";
 
-const PRIORITY_COLORS = { High: "#e0524c", Medium: "#d99a2b", Low: "#2fa66a" };
-const PALETTE = ["#5b4dff", "#7a70ff", "#e0524c", "#d99a2b", "#2fa66a", "#3b82f6", "#ec4899", "#14b8a6"];
+const PRIORITY_COLORS = { High: "#c0392b", Medium: "#b8860b", Low: "#2f8f5b" };
+const PALETTE = ["#3d6b96", "#7fa8c9", "#9a9a9f", "#c0392b", "#b8860b", "#2f8f5b", "#5a5a5e", "#8a8a8f"];
 
 function toChartData(breakdown) {
   return Object.entries(breakdown).map(([name, value]) => ({ name, value }));
@@ -84,7 +84,7 @@ export function AnalyticsTab() {
                 paddingAngle={2}
               >
                 {toChartData(data.priority_breakdown).map((entry) => (
-                  <Cell key={entry.name} fill={PRIORITY_COLORS[entry.name] ?? "#5b4dff"} />
+                  <Cell key={entry.name} fill={PRIORITY_COLORS[entry.name] ?? "#3d6b96"} />
                 ))}
               </Pie>
               <Tooltip contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
@@ -117,7 +117,7 @@ export function AnalyticsTab() {
               <XAxis type="number" hide />
               <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} fill="#5b4dff" />
+              <Bar dataKey="value" radius={[0, 6, 6, 0]} fill="#3d6b96" />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -130,7 +130,7 @@ export function AnalyticsTab() {
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis hide />
               <Tooltip contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#7a70ff" />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#7fa8c9" />
             </BarChart>
           </ResponsiveContainer>
         </Card>

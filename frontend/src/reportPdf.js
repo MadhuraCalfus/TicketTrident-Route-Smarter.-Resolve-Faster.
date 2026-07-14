@@ -36,7 +36,7 @@ export function generateAnalyticsPdf(data) {
       ["Human/AI agreement rate", data.agreement_rate === null ? "no feedback yet" : `${data.agreement_rate.toFixed(0)}%`],
     ],
     styles: { fontSize: 10 },
-    headStyles: { fillColor: [91, 77, 255] },
+    headStyles: { fillColor: [61, 107, 150] },
   });
 
   const sections = [
@@ -53,7 +53,7 @@ export function generateAnalyticsPdf(data) {
       head: [[title, "Count", "Share"]],
       body: breakdownRows(breakdown),
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [91, 77, 255] },
+      headStyles: { fillColor: [61, 107, 150] },
     });
   }
 

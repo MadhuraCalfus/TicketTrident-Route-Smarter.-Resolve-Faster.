@@ -1,33 +1,59 @@
-import { useEffect, useState } from "react";
-import { api } from "./api";
-import { useTheme } from "./hooks/useTheme";
-import { Header } from "./components/Header";
-import { RouteTicketTab } from "./components/RouteTicketTab";
-import { RaceTab } from "./components/RaceTab";
-import { DemoTab } from "./components/DemoTab";
-import { AnalyticsTab } from "./components/AnalyticsTab";
-import { HistoryTab } from "./components/HistoryTab";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
+import { RequireRole } from "./auth/RequireRole";
+import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
+import { UserDashboard } from "./pages/user/UserDashboard";
+import { TeamDashboard } from "./pages/team/TeamDashboard";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+
+function HomeRedirect() {
+  const { auth } = useAuth();
+  if (!auth) return <Navigate to="/login" replace />;
+  return <Navigate to={`/${auth.role}`} replace />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route
+        path="/user"
+        element={
+          <RequireRole role="user">
+            <UserDashboard />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/team"
+        element={
+          <RequireRole role="team">
+            <TeamDashboard />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RequireRole role="admin">
+            <AdminDashboard />
+          </RequireRole>
+        }
+      />
+      <Route path="*" element={<HomeRedirect />} />
+    </Routes>
+  );
+}
 
 function App() {
-  const [tab, setTab] = useState("route");
-  const { theme, toggle } = useTheme();
-  const [health, setHealth] = useState(null);
-
-  useEffect(() => {
-    api.health().then(setHealth).catch(() => {});
-  }, [tab]);
-
   return (
-    <div className="app-backdrop min-h-screen">
-      <Header tab={tab} onTab={setTab} theme={theme} onToggleTheme={toggle} health={health} />
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        {tab === "route" && <RouteTicketTab />}
-        {tab === "race" && <RaceTab />}
-        {tab === "demo" && <DemoTab />}
-        {tab === "analytics" && <AnalyticsTab />}
-        {tab === "history" && <HistoryTab />}
-      </main>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

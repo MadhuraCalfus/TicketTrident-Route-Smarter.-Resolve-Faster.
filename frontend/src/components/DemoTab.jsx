@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Loader2, PlayCircle, XCircle } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { api } from "../api";
 import { Button, Card, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "./primitives";
 
@@ -9,18 +9,6 @@ export function DemoTab() {
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState([]);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [repairExamples, setRepairExamples] = useState(null);
-  const [repairLoading, setRepairLoading] = useState(false);
-
-  async function loadRepairDemo() {
-    setRepairLoading(true);
-    try {
-      const r = await api.repairExample();
-      setRepairExamples(r.examples);
-    } finally {
-      setRepairLoading(false);
-    }
-  }
 
   async function load() {
     const r = await api.sampleTickets();
@@ -90,8 +78,8 @@ export function DemoTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/10">
-              {results.map((r) => (
-                <tr key={r.id} className="align-top">
+              {results.map((r, i) => (
+                <tr key={i} className="align-top">
                   <td className="max-w-xs px-3 py-2.5 text-ink/80 dark:text-ink-dark/80">{r.message}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.category}</td>
                   <td className="px-3 py-2.5"><PriorityBadge priority={r.priority} escalated={r.escalated} /></td>
@@ -105,42 +93,6 @@ export function DemoTab() {
           </table>
         </div>
       )}
-      <div className="mt-6 border-t border-black/5 dark:border-white/10 pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold">What happens when the AI returns malformed JSON?</h3>
-            <p className="mt-1 text-xs text-ink/60 dark:text-ink-dark/60">
-              Structured Outputs (a JSON Schema passed to AI) prevents most of this — but every response still
-              goes through a repair step as defense-in-depth. These are deterministic examples, independent of any
-              live API call.
-            </p>
-          </div>
-          <Button variant="ghost" onClick={loadRepairDemo} disabled={repairLoading}>
-            {repairLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-            Show me
-          </Button>
-        </div>
-
-        {repairExamples && (
-          <div className="mt-3 space-y-2">
-            {repairExamples.map((ex, i) => (
-              <div key={i} className="rounded-xl border border-black/10 dark:border-white/15 p-3">
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  {ex.success ? (
-                    <CheckCircle2 size={14} className="text-emerald-500" />
-                  ) : (
-                    <XCircle size={14} className="text-red-500" />
-                  )}
-                  {ex.success ? "Recovered automatically" : "Unrecoverable — falls back to the keyword baseline"}
-                </div>
-                <pre className="thin-scroll mt-2 overflow-x-auto rounded-lg bg-black/[0.04] dark:bg-white/[0.06] p-2 text-[11px] text-ink/70 dark:text-ink-dark/70">
-                  {ex.input}
-                </pre>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </Card>
   );
 }

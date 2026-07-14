@@ -1,0 +1,58 @@
+import { useEffect, useState } from "react";
+import { BarChart3, Building2, Clock, Inbox, Table2, Users, Zap } from "lucide-react";
+import { api } from "../../api";
+import { useAuth } from "../../auth/AuthContext";
+import { useTheme } from "../../hooks/useTheme";
+import { Header } from "../../components/Header";
+import { RaceTab } from "../../components/RaceTab";
+import { DemoTab } from "../../components/DemoTab";
+import { AnalyticsTab } from "../../components/AnalyticsTab";
+import { NewTicketsQueuePage } from "./NewTicketsQueuePage";
+import { AllTicketsPage } from "./AllTicketsPage";
+import { TeamsOverviewPage } from "./TeamsOverviewPage";
+import { TeamMembersPage } from "./TeamMembersPage";
+
+const TABS = [
+  { id: "queue", label: "New Tickets", icon: Inbox },
+  { id: "all", label: "All Tickets", icon: Table2 },
+  { id: "teams", label: "Teams", icon: Building2 },
+  { id: "team-members", label: "Team Members", icon: Users },
+  { id: "race", label: "Manual vs AI Race", icon: Clock },
+  { id: "demo", label: "Demo (20 Tickets)", icon: Zap },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+];
+
+export function AdminDashboard() {
+  const [tab, setTab] = useState("queue");
+  const { theme, toggle } = useTheme();
+  const [health, setHealth] = useState(null);
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    api.health().then(setHealth).catch(() => {});
+  }, [tab]);
+
+  return (
+    <div className="app-backdrop min-h-screen">
+      <Header
+        tabs={TABS}
+        tab={tab}
+        onTab={setTab}
+        theme={theme}
+        onToggleTheme={toggle}
+        health={health}
+        userLabel="Admin"
+        onLogout={logout}
+      />
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {tab === "queue" && <NewTicketsQueuePage />}
+        {tab === "all" && <AllTicketsPage />}
+        {tab === "teams" && <TeamsOverviewPage />}
+        {tab === "team-members" && <TeamMembersPage />}
+        {tab === "race" && <RaceTab />}
+        {tab === "demo" && <DemoTab />}
+        {tab === "analytics" && <AnalyticsTab />}
+      </main>
+    </div>
+  );
+}

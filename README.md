@@ -1,4 +1,4 @@
-# 🔱 TicketTrident – Route Smarter. Resolve Faster.
+#  TicketTrident – Route Smarter. Resolve Faster.
 
 An AI-powered support ticket triage system. Paste (or CLI-pipe) any support message and get back **category, priority, team, and a one-line reason** — as strict, schema-validated JSON, every time.
 

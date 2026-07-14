@@ -4,15 +4,6 @@ import { api } from "../api";
 import { CATEGORIES, PRIORITIES, TEAMS } from "../constants";
 import { Button, Card, CategoryPill, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "./primitives";
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{label}</div>
-      {children}
-    </div>
-  );
-}
-
 export function ResultCard({ result, onUpdated }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [correctedCategory, setCorrectedCategory] = useState(result.category);
@@ -56,38 +47,46 @@ export function ResultCard({ result, onUpdated }) {
 
   return (
     <Card className="fade-up p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 dark:border-white/10 pb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <CategoryPill>{result.category}</CategoryPill>
-          <PriorityBadge priority={result.priority} escalated={result.escalated} />
+      <p className="text-sm leading-relaxed text-ink/70 dark:text-ink-dark/70">"{result.message}"</p>
+
+      {/* The four things a non-technical reader actually needs, shown big and first. */}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-black/10 dark:border-white/15 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Category</div>
+          <div className="mt-1.5"><CategoryPill>{result.category}</CategoryPill></div>
+        </div>
+        <div className="rounded-xl border border-black/10 dark:border-white/15 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Priority</div>
+          <div className="mt-1.5"><PriorityBadge priority={result.priority} escalated={result.escalated} /></div>
+        </div>
+        <div className="rounded-xl border border-black/10 dark:border-white/15 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Assigned team</div>
+          <div className="mt-1.5 text-sm font-semibold text-ink dark:text-ink-dark">{result.team}</div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] p-3.5">
+        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
+          <Sparkles size={12} /> Why
+        </div>
+        <p className="text-sm leading-relaxed text-ink/80 dark:text-ink-dark/80">{result.reasoning}</p>
+      </div>
+
+      {/* Everything below is secondary/technical detail — smaller and muted on purpose. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-black/5 dark:border-white/10 pt-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Tone</span>
           <ToneBadge tone={result.tone} />
         </div>
-        <div className="flex items-center gap-2">
-          <ModePill mode={result.mode} model={result.model_used} />
-          <span className="text-xs text-ink/40 dark:text-ink-dark/40">{result.latency_ms}ms</span>
-        </div>
-      </div>
-
-      <p className="my-4 text-sm leading-relaxed text-ink/80 dark:text-ink-dark/80">"{result.message}"</p>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Field label="Assigned team">
-          <span className="text-sm font-semibold">{result.team}</span>
-        </Field>
-        <Field label="Confidence">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Confidence</span>
           <ConfidenceMeter value={result.confidence} ambiguous={result.is_ambiguous} />
-        </Field>
-        <Field label="Model">
-          <span className="text-sm">{result.model_used}</span>
-        </Field>
-        <Field label="Escalated?">
-          <span className="text-sm">{result.escalated ? "Yes, tone-triggered" : "No"}</span>
-        </Field>
-      </div>
-
-      <div className="mt-4 flex items-start gap-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] p-3 text-sm">
-        <Sparkles size={16} className="mt-0.5 shrink-0 text-brand dark:text-brand-dim" />
-        <span className="text-ink/80 dark:text-ink-dark/80">{result.reasoning}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Model</span>
+          <ModePill mode={result.mode} model={result.model_used} />
+        </div>
+        <span className="text-xs text-ink/40 dark:text-ink-dark/40">{result.latency_ms}ms</span>
       </div>
 
       {result.baseline && (
@@ -101,11 +100,6 @@ export function ResultCard({ result, onUpdated }) {
             <span className="text-ink/60 dark:text-ink-dark/60">→ {result.baseline.team}</span>
           </div>
           <p className="mt-1.5 text-xs text-ink/50 dark:text-ink-dark/50">{result.baseline.reasoning}</p>
-          {(result.baseline.category !== result.category || result.baseline.priority !== result.priority) && (
-            <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-              Disagrees with Claude's classification — a common failure mode for keyword matching (sarcasm, negation, multi-issue tickets).
-            </p>
-          )}
         </div>
       )}
 
@@ -147,7 +141,7 @@ export function ResultCard({ result, onUpdated }) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark"
         >
           <Braces size={13} />
-          {showJson ? "Hide raw JSON" : "View raw JSON"}
+          {showJson ? "Hide technical data (JSON)" : "View technical data (JSON)"}
           {showJson ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </button>
         {showJson && (

@@ -2,10 +2,13 @@
 from collections import Counter
 
 from . import store
+from .models import Team
 
 
 def _bucket(rows: list[dict], field: str) -> dict[str, int]:
-    return dict(Counter(r[field] for r in rows))
+    # Unrouted ("New") tickets have no category/priority/team/tone yet —
+    # exclude them rather than let them show up as a spurious null bucket.
+    return dict(Counter(r[field] for r in rows if r.get(field) is not None))
 
 
 def compute_analytics() -> dict:
@@ -61,4 +64,31 @@ def compute_analytics() -> dict:
         "escalated_count": sum(1 for r in rows if r["escalated"]),
         "feedback_count": len(reviewed),
         "agreement_rate": None if not reviewed else round(100 * (1 - len(corrected) / len(reviewed)), 1),
+    }
+
+
+def compute_team_summary() -> dict:
+    """Per-team workload: how many of that team's tickets are assigned
+    (just routed, not started), in progress, or resolved. Every team shows
+    up even with zero tickets, so an empty team is visibly empty rather
+    than just missing."""
+    rows = store.list_tickets(limit=100000, offset=0)
+    counts = {t.value: {"assigned": 0, "in_progress": 0, "resolved": 0} for t in Team}
+
+    for r in rows:
+        team = r.get("team")
+        if team not in counts:
+            continue
+        if r["status"] == "Routed":
+            counts[team]["assigned"] += 1
+        elif r["status"] == "In Progress":
+            counts[team]["in_progress"] += 1
+        elif r["status"] == "Resolved":
+            counts[team]["resolved"] += 1
+
+    return {
+        "teams": [
+            {"team": team, **c, "total": c["assigned"] + c["in_progress"] + c["resolved"]}
+            for team, c in counts.items()
+        ]
     }

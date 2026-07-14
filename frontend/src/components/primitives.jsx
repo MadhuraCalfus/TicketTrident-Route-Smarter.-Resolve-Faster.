@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { AlertTriangle, Frown, HelpCircle, Meh, Smile, Zap as ZapIcon } from "lucide-react";
+import { AlertTriangle, Check, Frown, HelpCircle, Meh, Smile, Zap as ZapIcon } from "lucide-react";
 
 export function Card({ className, children }) {
   return (
@@ -101,10 +101,67 @@ export function ModePill({ mode, model }) {
   );
 }
 
+const STATUS_STYLES = {
+  New: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
+  Routed: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  "In Progress": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  Resolved: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+};
+
+export function StatusBadge({ status }) {
+  return (
+    <span className={clsx("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", STATUS_STYLES[status] ?? STATUS_STYLES.New)}>
+      {status}
+    </span>
+  );
+}
+
+const STATUS_STEPS = ["New", "Routed", "In Progress", "Resolved"];
+
+export function StatusStepper({ status, labels = STATUS_STEPS }) {
+  const current = STATUS_STEPS.indexOf(status);
+  return (
+    <div className="flex items-start">
+      {STATUS_STEPS.map((step, i) => {
+        const done = i < current;
+        const isCurrent = i === current;
+        return (
+          <div key={step} className="flex items-start">
+            <div className="flex flex-col items-center">
+              <div
+                className={clsx(
+                  "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold",
+                  done && "bg-emerald-500 text-white",
+                  isCurrent && "bg-brand text-white ring-4 ring-brand/15",
+                  !done && !isCurrent && "bg-black/8 dark:bg-white/10 text-ink/40 dark:text-ink-dark/40",
+                )}
+                title={step}
+              >
+                {done ? <Check size={13} /> : i + 1}
+              </div>
+              <span
+                className={clsx(
+                  "mt-1 w-14 text-center text-[10px] leading-tight",
+                  isCurrent ? "font-semibold text-brand dark:text-brand-dim" : "text-ink/40 dark:text-ink-dark/40",
+                )}
+              >
+                {labels[i]}
+              </span>
+            </div>
+            {i < STATUS_STEPS.length - 1 && (
+              <div className={clsx("mt-3 h-0.5 w-4 shrink-0 sm:w-7", done ? "bg-emerald-500" : "bg-black/8 dark:bg-white/10")} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Button({ children, className, variant = "primary", ...rest }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed";
   const variants = {
-    primary: "bg-brand text-white hover:bg-indigo-600 active:scale-[0.98] shadow-sm shadow-brand/30",
+    primary: "bg-brand text-white hover:opacity-90 active:scale-[0.98] shadow-sm shadow-brand/30",
     ghost: "bg-black/5 dark:bg-white/10 text-ink dark:text-ink-dark hover:bg-black/10 dark:hover:bg-white/15",
     danger: "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20",
   };

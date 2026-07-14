@@ -1,15 +1,7 @@
-import { BarChart3, Clock, History, Moon, Sun, Ticket, Zap } from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
 import clsx from "clsx";
 
-const TABS = [
-  { id: "route", label: "Route a Ticket", icon: Ticket },
-  { id: "race", label: "Manual vs AI Race", icon: Clock },
-  { id: "demo", label: "Demo (20 Tickets)", icon: Zap },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "history", label: "History", icon: History },
-];
-
-export function Header({ tab, onTab, theme, onToggleTheme, health }) {
+export function Header({ tabs, tab, onTab, theme, onToggleTheme, health, userLabel, onLogout }) {
   return (
     <header className="border-b border-black/8 dark:border-white/10">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -36,6 +28,9 @@ export function Header({ tab, onTab, theme, onToggleTheme, health }) {
               {health.mode === "live" ? `Live · ${health.model}` : "Mock mode (keyword baseline)"}
             </span>
           )}
+          {userLabel && (
+            <span className="hidden text-xs text-ink/50 dark:text-ink-dark/50 sm:inline">{userLabel}</span>
+          )}
           <button
             onClick={onToggleTheme}
             className="grid h-8 w-8 place-items-center rounded-lg text-ink/60 dark:text-ink-dark/60 hover:bg-black/5 dark:hover:bg-white/10"
@@ -43,26 +38,38 @@ export function Header({ tab, onTab, theme, onToggleTheme, health }) {
           >
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="grid h-8 w-8 place-items-center rounded-lg text-ink/60 dark:text-ink-dark/60 hover:bg-black/5 dark:hover:bg-white/10"
+              aria-label="Log out"
+              title="Log out"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
 
-      <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onTab(id)}
-            className={clsx(
-              "flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition",
-              tab === id
-                ? "border-brand text-brand dark:text-brand-dim"
-                : "border-transparent text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark",
-            )}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        ))}
-      </nav>
+      {tabs && tabs.length > 0 && (
+        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => onTab(id)}
+              className={clsx(
+                "flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition",
+                tab === id
+                  ? "border-brand text-brand dark:text-brand-dim"
+                  : "border-transparent text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark",
+              )}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

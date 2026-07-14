@@ -40,6 +40,13 @@ class Tone(str, Enum):
     POSITIVE = "positive"
 
 
+class TicketStatus(str, Enum):
+    NEW = "New"
+    ROUTED = "Routed"
+    IN_PROGRESS = "In Progress"
+    RESOLVED = "Resolved"
+
+
 class TicketClassification(BaseModel):
     """Schema Claude must fill in exactly — enforced via output_config.format."""
 
@@ -83,19 +90,22 @@ class ModelResult(BaseModel):
 
 
 class TicketResult(BaseModel):
-    id: str
+    id: int
+    user_id: Optional[int] = None
     message: str
-    category: Category
-    priority: Priority
-    team: Team
-    tone: Tone
-    confidence: float
-    is_ambiguous: bool
-    escalated: bool
-    reasoning: str
-    model_used: str
-    mode: str  # "live" | "mock" | "repaired" | "fallback"
-    latency_ms: int
+    status: TicketStatus = TicketStatus.NEW
+    # Unset until an Admin routes the ticket (status moves New -> Routed).
+    category: Optional[Category] = None
+    priority: Optional[Priority] = None
+    team: Optional[Team] = None
+    tone: Optional[Tone] = None
+    confidence: Optional[float] = None
+    is_ambiguous: Optional[bool] = None
+    escalated: Optional[bool] = None
+    reasoning: Optional[str] = None
+    model_used: Optional[str] = None
+    mode: Optional[str] = None  # "live" | "mock" | "repaired" | "fallback"
+    latency_ms: Optional[int] = None
     manual_time_seconds: Optional[float] = None
     created_at: str
     baseline: Optional[BaselineResult] = None
@@ -104,6 +114,53 @@ class TicketResult(BaseModel):
     corrected_priority: Optional[Priority] = None
     corrected_team: Optional[Team] = None
     feedback_note: Optional[str] = None
+
+
+class SignupRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=200)
+    password: str = Field(min_length=6, max_length=200)
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    role: str  # "user" | "team" | "admin"
+    name: str
+    team: Optional[Team] = None
+
+
+class TeamMemberCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=200)
+    password: str = Field(min_length=6, max_length=200)
+    team: Team
+
+
+class NewTicketRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=8000)
+
+
+class TicketStatusUpdateRequest(BaseModel):
+    status: TicketStatus
+
+
+class BulkRouteRequest(BaseModel):
+    ticket_ids: list[int] = Field(min_length=1, max_length=100)
+
+
+class AdminAssignRequest(BaseModel):
+    """What an Admin finalizes a routed ticket with — defaults to whatever
+    the AI suggested, but the admin can change any of the three before
+    confirming, which is what actually determines which team gets it."""
+
+    category: Category
+    priority: Priority
+    team: Team
 
 
 class FeedbackRequest(BaseModel):

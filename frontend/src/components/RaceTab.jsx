@@ -194,11 +194,7 @@ export function RaceTab() {
                 <div className="mt-1 text-xs">{aiResult.category} → {aiResult.team}</div>
               </div>
             </div>
-            {(aiResult.category !== manualCategory || aiResult.priority !== manualPriority || aiResult.team !== manualTeam) && (
-              <p className="text-xs text-ink/50 dark:text-ink-dark/50">
-                You and Claude disagreed on this one — a good candidate to open in the Route tab and leave feedback on.
-              </p>
-            )}
+            
           </div>
         )}
       </Card>
