@@ -45,7 +45,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="app-backdrop flex min-h-screen items-center justify-center px-4">
+    <div className="auth-backdrop flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm p-6">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
