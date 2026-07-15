@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { RequireRole } from "./auth/RequireRole";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { UserDashboard } from "./pages/user/UserDashboard";
 import { TeamDashboard } from "./pages/team/TeamDashboard";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
@@ -18,6 +20,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/user"
         element={

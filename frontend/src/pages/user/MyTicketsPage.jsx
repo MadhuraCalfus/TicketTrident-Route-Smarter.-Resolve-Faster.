@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { MessageCircle, RefreshCw } from "lucide-react";
 import { api } from "../../api";
-import { Card, CategoryPill, PriorityBadge, StatusStepper } from "../../components/primitives";
+import { Card, CategoryPill, Modal, PriorityBadge, StatusStepper } from "../../components/primitives";
+import { CommentThread } from "../../components/CommentThread";
 
 // Plain-language stage names for the customer — "Routed" is internal
 // jargon, so it reads as "Assigned" here instead.
@@ -26,6 +27,7 @@ function StatCard({ label, value, highlight }) {
 export function MyTicketsPage({ reloadKey }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeThread, setActiveThread] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -85,21 +87,54 @@ export function MyTicketsPage({ reloadKey }) {
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-ink/80 dark:text-ink-dark/80">{t.message}</p>
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {t.category ? (
-                    <>
-                      <CategoryPill>{t.category}</CategoryPill>
-                      <PriorityBadge priority={t.priority} escalated={t.escalated} />
-                    </>
-                  ) : (
-                    <span className="text-xs italic text-ink/40 dark:text-ink-dark/40">Waiting to be reviewed by our team</span>
-                  )}
+                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {t.category ? (
+                      <>
+                        <CategoryPill>{t.category}</CategoryPill>
+                        <PriorityBadge priority={t.priority} escalated={t.escalated} />
+                      </>
+                    ) : (
+                      <span className="text-xs italic text-ink/40 dark:text-ink-dark/40">Waiting to be reviewed by our team</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setActiveThread(t.id)}
+                    disabled={t.status !== "In Progress"}
+                    title={
+                      t.status === "In Progress"
+                        ? undefined
+                        : t.status === "Resolved"
+                          ? "This ticket is resolved — messaging is closed."
+                          : "Messaging opens once a team starts working this ticket."
+                    }
+                    className="relative inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink/60 dark:text-ink-dark/60 hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    <MessageCircle size={13} /> Message team
+                    {t.unread_comments > 0 && (
+                      <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                        {t.unread_comments}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </Card>
+
+      {activeThread && (
+        <Modal
+          title={`Ticket #${activeThread} — Messages`}
+          onClose={() => {
+            setActiveThread(null);
+            load();
+          }}
+        >
+          <CommentThread ticketId={activeThread} />
+        </Modal>
+      )}
     </div>
   );
 }

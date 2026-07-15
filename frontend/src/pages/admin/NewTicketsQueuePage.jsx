@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { api } from "../../api";
 import { CATEGORIES, PRIORITIES, TEAMS } from "../../constants";
-import { Button, Card, CategoryPill, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge } from "../../components/primitives";
+import { Button, Card, CategoryPill, ConfidenceMeter, ModePill, PriorityBadge, ToneBadge, Toast } from "../../components/primitives";
 
 function Select({ label, value, onChange, options }) {
   return (
@@ -33,20 +33,38 @@ function Field({ label, children }) {
 export function NewTicketsQueuePage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [routing, setRouting] = useState(null);
   const [routed, setRouted] = useState({});
   const [edits, setEdits] = useState({});
-  const [assigning, setAssigning] = useState(null);
-  const [assigned, setAssigned] = useState({});
   const [selected, setSelected] = useState(new Set());
-  const [bulkRouting, setBulkRouting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [toast, setToast] = useState(null);
 
+  function showToast(message) {
+    setToast(message);
+    setTimeout(() => setToast(null), 2500);
+  }
+
+  async function performRoute(id) {
+    const result = await api.adminRouteTicket(id);
+    setRouted((prev) => ({ ...prev, [id]: result }));
+    setEdits((prev) => ({ ...prev, [id]: { category: result.category, priority: result.priority, team: result.team } }));
+  }
+
+  // Additive, not a replace — a ticket already fetched here gets routed
+  // immediately, which the backend records by moving its status off "New".
+  // A later refresh would otherwise silently drop it (the server no longer
+  // considers it part of the "New" queue) before it's ever been confirmed,
+  // so refresh only ever adds tickets it hasn't seen yet.
   async function load() {
     setLoading(true);
     try {
       const r = await api.adminNewTickets();
-      setTickets(r.tickets);
-      setSelected(new Set());
+      setTickets((prev) => {
+        const known = new Set(prev.map((t) => t.id));
+        const fresh = r.tickets.filter((t) => !known.has(t.id));
+        fresh.forEach((t) => performRoute(t.id));
+        return [...prev, ...fresh];
+      });
     } finally {
       setLoading(false);
     }
@@ -56,36 +74,13 @@ export function NewTicketsQueuePage() {
     load();
   }, []);
 
-  async function routeTicket(id) {
-    setRouting(id);
-    try {
-      const result = await api.adminRouteTicket(id);
-      setRouted((prev) => ({ ...prev, [id]: result }));
-      setEdits((prev) => ({ ...prev, [id]: { category: result.category, priority: result.priority, team: result.team } }));
-    } finally {
-      setRouting(null);
-    }
-  }
-
   function setEdit(id, field, value) {
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   }
 
-  async function confirm(id) {
-    setAssigning(id);
-    try {
-      const { category, priority, team } = edits[id];
-      const result = await api.adminAssignTicket(id, category, priority, team);
-      setAssigned((prev) => ({ ...prev, [id]: result }));
-    } finally {
-      setAssigning(null);
-    }
-  }
-
-  // Only tickets not already mid-review (single-ticket flow) are eligible
-  // for bulk selection — once someone's looking at one individually, it's
-  // no longer part of the "just route them all" fast path.
-  const selectableIds = tickets.filter((t) => !routed[t.id]).map((t) => t.id);
+  // Selectable once the AI's pick is in, whether or not the admin has
+  // changed anything — that's what "Confirm Route" actually assigns.
+  const selectableIds = tickets.filter((t) => routed[t.id]).map((t) => t.id);
   const allSelected = selectableIds.length > 0 && selected.size === selectableIds.length;
 
   function toggleSelected(id) {
@@ -101,23 +96,33 @@ export function NewTicketsQueuePage() {
     setSelected(allSelected ? new Set() : new Set(selectableIds));
   }
 
-  async function routeBulk() {
-    setBulkRouting(true);
+  async function confirmSelected() {
+    const ids = [...selected];
+    setConfirming(true);
     try {
-      await api.adminRouteBulk([...selected]);
-      await load();
+      await Promise.all(
+        ids.map((id) => {
+          const { category, priority, team } = edits[id];
+          return api.adminAssignTicket(id, category, priority, team);
+        }),
+      );
+      // Routed and assigned — they now belong on the All Tickets page, not here.
+      setTickets((prev) => prev.filter((t) => !ids.includes(t.id)));
+      setSelected(new Set());
+      showToast(`${ids.length} ticket${ids.length === 1 ? "" : "s"} routed & assigned`);
     } finally {
-      setBulkRouting(false);
+      setConfirming(false);
     }
   }
 
   return (
     <Card className="p-5">
+      <Toast message={toast} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-lg font-semibold">New tickets ({tickets.length})</h2>
           <p className="mt-1 text-sm text-ink/60 dark:text-ink-dark/60">
-            Submitted by customers, not yet routed. Route one, then approve the AI's pick as-is or change it before assigning.
+            Submitted by customers — routed automatically by AI. Review or change the pick below, then confirm to assign.
           </p>
         </div>
         <button
@@ -134,12 +139,12 @@ export function NewTicketsQueuePage() {
         <>
           <div className="mt-4 flex items-center justify-between rounded-xl border border-black/8 dark:border-white/10 px-3 py-2">
             <label className="flex items-center gap-2 text-xs text-ink/60 dark:text-ink-dark/60">
-              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="accent-current" />
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} disabled={selectableIds.length === 0} className="accent-current" />
               {selected.size > 0 ? `${selected.size} selected` : "Select all"}
             </label>
-            <Button className="!py-1.5 !px-3" onClick={routeBulk} disabled={selected.size === 0 || bulkRouting}>
-              {bulkRouting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-              {bulkRouting ? "Routing..." : `Route ${selected.size || ""} selected`}
+            <Button className="!py-1.5 !px-3" onClick={confirmSelected} disabled={selected.size === 0 || confirming}>
+              {confirming ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {confirming ? "Confirming..." : `Confirm Route${selected.size > 0 ? ` (${selected.size})` : ""}`}
             </Button>
           </div>
 
@@ -147,33 +152,29 @@ export function NewTicketsQueuePage() {
           {tickets.map((t) => {
             const result = routed[t.id];
             const edit = edits[t.id];
-            const done = assigned[t.id];
             const changed = result && edit && (edit.category !== result.category || edit.priority !== result.priority || edit.team !== result.team);
 
             return (
               <div key={t.id} className="rounded-xl border border-black/8 dark:border-white/10 p-4">
                 <div className="flex items-start gap-3">
-                  {!result && (
+                  {result ? (
                     <input
                       type="checkbox"
                       checked={selected.has(t.id)}
                       onChange={() => toggleSelected(t.id)}
                       className="mt-0.5 accent-current"
-                      aria-label="Select ticket for bulk routing"
+                      aria-label={`Select ticket ${t.id} to confirm`}
                     />
+                  ) : (
+                    <Loader2 size={15} className="mt-0.5 shrink-0 animate-spin text-ink/40 dark:text-ink-dark/40" />
                   )}
                   <p className="flex-1 text-sm text-ink/80 dark:text-ink-dark/80">"{t.message}"</p>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <span className="text-[11px] text-ink/40 dark:text-ink-dark/40">
-                    submitted by {t.user_name ?? t.user_id} · {new Date(t.created_at).toLocaleString()}
+                    Ticket #{t.id} · submitted by {t.user_name ?? `user #${t.user_id}`} · {new Date(t.created_at).toLocaleString()}
                   </span>
-                  {!result && (
-                    <Button className="!py-1.5 !px-3" onClick={() => routeTicket(t.id)} disabled={routing === t.id}>
-                      {routing === t.id ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                      {routing === t.id ? "Routing..." : "Route"}
-                    </Button>
-                  )}
+                  {!result && <span className="text-[11px] italic text-ink/40 dark:text-ink-dark/40">Routing with AI...</span>}
                 </div>
 
                 {result && (
@@ -224,35 +225,17 @@ export function NewTicketsQueuePage() {
                       </div>
                     )}
 
-                    {/* Editable — pre-filled with the AI's pick. Approve by leaving as-is, or change before assigning. */}
+                    {/* Editable — pre-filled with the AI's pick. Leave as-is or change it; "Confirm Route" up top is what actually assigns it. */}
                     <div className="rounded-xl border border-brand/20 bg-brand/5 p-3.5">
                       <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand dark:text-brand-dim">
-                        {done ? "Assigned" : "Approve or change before assigning"}
+                        Edit before confirming (optional)
                       </div>
-                      {done ? (
-                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-                          <Field label="Category"><CategoryPill>{done.category}</CategoryPill></Field>
-                          <Field label="Priority"><PriorityBadge priority={done.priority} escalated={done.escalated} /></Field>
-                          <Field label="Team"><span className="text-sm font-semibold text-ink dark:text-ink-dark">{done.team}</span></Field>
-                          <Field label="Tone"><ToneBadge tone={done.tone} /></Field>
-                          <Field label="Confidence"><ConfidenceMeter value={done.confidence} ambiguous={done.is_ambiguous} /></Field>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Select label="Category" value={edit.category} onChange={(v) => setEdit(t.id, "category", v)} options={CATEGORIES} />
-                            <Select label="Priority" value={edit.priority} onChange={(v) => setEdit(t.id, "priority", v)} options={PRIORITIES} />
-                            <Select label="Team" value={edit.team} onChange={(v) => setEdit(t.id, "team", v)} options={TEAMS} />
-                          </div>
-                          <div className="mt-3 flex items-center gap-2">
-                            <Button className="!py-1.5 !px-3" onClick={() => confirm(t.id)} disabled={assigning === t.id}>
-                              {assigning === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                              {changed ? "Save changes & assign" : "Approve & assign"}
-                            </Button>
-                            {changed && <span className="text-xs text-amber-600 dark:text-amber-400">Overriding the AI's pick</span>}
-                          </div>
-                        </>
-                      )}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <Select label="Category" value={edit.category} onChange={(v) => setEdit(t.id, "category", v)} options={CATEGORIES} />
+                        <Select label="Priority" value={edit.priority} onChange={(v) => setEdit(t.id, "priority", v)} options={PRIORITIES} />
+                        <Select label="Team" value={edit.team} onChange={(v) => setEdit(t.id, "team", v)} options={TEAMS} />
+                      </div>
+                      {changed && <span className="mt-2 inline-block text-xs text-amber-600 dark:text-amber-400">Overriding the AI's pick</span>}
                     </div>
                   </div>
                 )}

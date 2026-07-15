@@ -22,6 +22,28 @@ async function request(path, options) {
   return res.json();
 }
 
+// Bypasses request()'s forced JSON content-type — a FormData upload needs
+// the browser to set its own multipart boundary header instead.
+async function uploadFile(path, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`/api${path}`, { method: "POST", cache: "no-store", headers: { ...authHeader() }, body: formData });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+  return res.json();
+}
+
+async function downloadFile(path) {
+  const res = await fetch(`/api${path}`, { cache: "no-store", headers: { ...authHeader() } });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+  return res.blob();
+}
+
 export const api = {
   health: () => request("/health"),
 
@@ -33,6 +55,11 @@ export const api = {
     request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
   me: () => request("/auth/me"),
+
+  forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+
+  resetPassword: (token, newPassword) =>
+    request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password: newPassword }) }),
 
   // ---- admin sandbox tools (Route a Ticket / Race / Demo / Analytics / History) ----
   route: (message, opts) =>
@@ -62,9 +89,23 @@ export const api = {
     }),
 
   // ---- user ----
+  suggestResolution: (message) => request("/tickets/suggest", { method: "POST", body: JSON.stringify({ message }) }),
+
   createTicket: (message) => request("/tickets", { method: "POST", body: JSON.stringify({ message }) }),
 
   myTickets: () => request("/my-tickets"),
+
+  // ---- ticket comments (customer <-> team, shared by whichever role owns the ticket) ----
+  ticketComments: (id) => request(`/tickets/${id}/comments`),
+
+  postTicketComment: (id, body) =>
+    request(`/tickets/${id}/comments`, { method: "POST", body: JSON.stringify({ body }) }),
+
+  markTicketCommentsRead: (id) => request(`/tickets/${id}/comments/read`, { method: "POST" }),
+
+  uploadTicketAttachment: (id, file) => uploadFile(`/tickets/${id}/attachments`, file),
+
+  downloadTicketAttachment: (ticketId, commentId) => downloadFile(`/tickets/${ticketId}/attachments/${commentId}`),
 
   // ---- admin: ticket queue + team management ----
   adminNewTickets: () => request("/admin/tickets/new"),
@@ -77,15 +118,11 @@ export const api = {
       body: JSON.stringify({ category, priority, team }),
     }),
 
-  adminRouteBulk: (ticketIds) =>
-    request("/admin/tickets/route-bulk", {
-      method: "POST",
-      body: JSON.stringify({ ticket_ids: ticketIds }),
-    }),
-
   adminTeamSummary: () => request("/admin/team-summary"),
 
   adminAllTickets: () => request("/admin/tickets"),
+
+  downloadTicketReport: (id) => downloadFile(`/admin/tickets/${id}/report.pdf`),
 
   adminListTeamMembers: () => request("/admin/team-members"),
 
@@ -94,6 +131,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, email, password, team }),
     }),
+
+  adminDeleteTeamMember: (id) => request(`/admin/team-members/${id}`, { method: "DELETE" }),
 
   // ---- team ----
   teamTickets: () => request("/team/tickets"),

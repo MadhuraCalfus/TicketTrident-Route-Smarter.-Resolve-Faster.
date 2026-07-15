@@ -35,7 +35,7 @@ export function DemoTab() {
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-semibold">Demo: 20 sample tickets</h2>
+          <h2 className="font-display text-lg font-semibold">Demo: 30 sample tickets</h2>
           <p className="mt-1 text-sm text-ink/60 dark:text-ink-dark/60">
             One click to route the full mission sample set — includes angry-tone, one-word, and
             multi-issue ambiguous tickets end to end.
@@ -46,7 +46,7 @@ export function DemoTab() {
         ) : (
           <Button onClick={runAll} disabled={running}>
             {running ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} />}
-            {running ? "Routing all 20..." : `Run all ${samples.length} tickets`}
+            {running ? "Routing all 30..." : `Run all ${samples.length} tickets`}
           </Button>
         )}
       </div>

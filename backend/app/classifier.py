@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from pydantic import ValidationError
 
 from . import baseline
-from .models import Category, Priority, Team, Tone, TicketClassification
+from .models import Category, Priority, ResolutionSuggestion, Team, Tone, TicketClassification
 
 MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-4-8")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
@@ -48,16 +48,41 @@ PROVIDER_PRIORITY = ["anthropic", "openai", "groq"]
 SYSTEM_PROMPT = """You are the triage engine for a company's support ticket routing system. \
 You read one incoming support message and decide how it should be routed.
 
+Category -> team routing. Use this mapping — don't improvise a different team for a given category:
+- Billing -> Billing Support
+- Technical Issue -> Technical Support
+- Account Access -> Account Management
+- Bug Report -> Engineering
+- Feature Request -> Product Team
+- Complaint -> Customer Success
+- Security Concern -> Security Team
+- General Inquiry -> Customer Success
+- Triage is reserved for the rare case where no category above genuinely fits, or the message is too short or empty to tell what's wrong — always pair team=Triage with category=General Inquiry, low confidence, and is_ambiguous=true. Never use Triage just because a ticket is hard; pick the best real category/team first.
+
+Category definitions. Technical Issue, Bug Report, and Account Access are the three easiest to confuse — read these carefully:
+- Technical Issue: the product or infrastructure isn't performing as expected for reasons outside one specific defect — slow, down, timing out, sync/integration/API failures.
+- Bug Report: a specific, reproducible defect in the software's own behavior — a crash, an error message, wrong output, a broken UI element — the kind of thing a developer would file and fix.
+- Account Access: can't log in, locked out, forgot password, MFA/2FA or sign-in trouble specifically.
+- Billing: money matters — charges, invoices, refunds, subscriptions, payment methods, pricing/plan changes.
+- Feature Request: the customer is asking for functionality that doesn't exist yet.
+- Complaint: dissatisfaction with the service or experience where there's no specific technical fault to diagnose — service quality, policy, a pricing change, general disappointment.
+- Security Concern: anything suggesting compromise — hacking, phishing, unauthorized or unrecognized access, leaked or exposed data.
+- General Inquiry: everything else, including genuinely unclear or near-empty messages.
+
 Rules:
 - Always choose exactly one category, priority, and team, even if the ticket is short, vague, \
 sarcastic, or touches more than one issue. Never refuse to classify a ticket just because it's \
 ambiguous — pick your best answer and say so via is_ambiguous instead.
+- If a ticket clearly touches more than one issue, classify by whichever one the customer seems to care about most (mentioned first, or most emphasized) and set is_ambiguous=true to flag that a second issue is also present — don't split the difference between two categories or two teams.
 - Set is_ambiguous=true whenever the ticket could reasonably fit more than one category, or there \
 is not enough information to be confident.
 - confidence is how sure you are in THIS classification (0 = pure guess, 1 = certain), not how \
 important the ticket is.
 - tone is the customer's emotional state as written (neutral, frustrated, angry, urgent, confused, \
-positive) - judge it from the actual words used, not the topic.
+worried, positive) - judge it from the actual words used, not the topic. worried is anxiety about \
+a possible bad outcome ("is this normal?", "I'm concerned my data was exposed", "I hope this isn't \
+serious") — distinct from confused (doesn't understand something) and urgent (wants faster action); \
+it shows up often, but not exclusively, on Security Concern tickets.
 - reasoning must be exactly one sentence, specific to this ticket's content.
 - The ticket may be written in any language. Understand it in its original language, but always \
 write `reasoning` in English, regardless of what language the ticket itself is in.
@@ -67,9 +92,16 @@ issues are Medium; cosmetic issues, feature requests, and calm general questions
 urgency-signaling words and formatting (e.g. "urgent", "ASAP", "immediately", "now", ALL CAPS, \
 exclamation points, angry language) when deciding priority — pretend the ticket was written in a \
 flat, calm voice and rate priority on the underlying issue alone. A separate rule outside your \
-control already handles raising priority for angry/urgent tone, so do not do it yourself.
+control already handles raising priority to High when tone is frustrated, angry, or urgent, so do \
+not do it yourself.
 - A one-word or near-empty message should still be classified: default toward General Inquiry / \
-Triage with low confidence and is_ambiguous=true, and use reasoning to say what's missing."""
+Triage with low confidence and is_ambiguous=true, and use reasoning to say what's missing.
+
+Worked examples, for calibration — match this style and level of specificity in your own reasoning, not these exact words:
+1. "I noticed a login from a country I don't recognize, can someone check this? I hope my account is okay." -> category=Security Concern, priority=High, team=Security Team, tone=worried, confidence=0.9, is_ambiguous=false. Reasoning: an unrecognized login location suggests possible unauthorized account access, and the customer expresses concern rather than anger.
+2. "This is ridiculous!! The dark mode toggle resets every single time I refresh the page!!!" -> category=Bug Report, priority=Low, team=Engineering, tone=angry, confidence=0.85, is_ambiguous=false. Reasoning: a cosmetic UI settings bug, regardless of how angrily it's phrased.
+3. "not working" -> category=General Inquiry, priority=Low, team=Triage, tone=confused, confidence=0.3, is_ambiguous=true. Reasoning: the message doesn't say what isn't working or which part of the product is affected.
+4. "I was double-charged for my subscription and the app also keeps crashing when I export data" -> category=Billing, priority=Medium, team=Billing Support, tone=frustrated, confidence=0.6, is_ambiguous=true. Reasoning: two distinct issues are reported; the billing dispute is treated as primary since it's mentioned first."""
 
 # The schema the model must fill in. Deliberately hand-written (rather than
 # Category.model_json_schema()) because output_config.format rejects a
@@ -93,16 +125,36 @@ TICKET_SCHEMA = {
     "additionalProperties": False,
 }
 
-# Groq's response_format="json_object" only guarantees syntactically valid
-# JSON, not conformance to TICKET_SCHEMA — and requires the word "json"
-# somewhere in the messages at all. So, unlike Claude/OpenAI, Groq needs the
-# schema spelled out in the prompt itself; _extract_json + Pydantic
-# validation + the repair turn below are what actually enforce the shape.
-GROQ_SYSTEM_PROMPT = (
-    SYSTEM_PROMPT
-    + "\n\nRespond with ONLY a single JSON object matching this schema, no markdown fences, "
-    "no commentary:\n" + json.dumps(TICKET_SCHEMA)
-)
+SUGGESTION_SYSTEM_PROMPT = """You are a friendly customer support assistant. A customer describes \
+an issue before it's ever routed to a human support team, and your job is to try to help them \
+solve it themselves right now, without waiting for a human — a real human still reviews it \
+afterward regardless, so it's fine to say "I'm not sure" rather than force an answer.
+
+Rules:
+- If you can plausibly help, give 2-5 concrete, actionable steps the customer can try themselves \
+right now. Steps must be specific to what they actually described — never generic filler like \
+"restart the app" unless it's genuinely relevant to this issue.
+- Set can_likely_self_resolve=false (and keep steps short or empty) whenever a human really should \
+handle it instead: billing disputes/refunds, security incidents or suspected account compromise, \
+anything involving lost data, or a message with too little information to say anything concrete.
+- Never invent account-specific facts (their balance, their plan, whether something is a known bug \
+on our end) — only offer general troubleshooting a customer could try on their own.
+- summary is one short sentence naming what you think the underlying issue is.
+- Match the language the customer wrote in."""
+
+# Same JSON-Schema-enforcement approach as ticket classification (see the
+# module docstring) — just a different shape, since this isn't a routing
+# decision.
+SUGGESTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "can_likely_self_resolve": {"type": "boolean"},
+        "summary": {"type": "string"},
+        "steps": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["can_likely_self_resolve", "summary", "steps"],
+    "additionalProperties": False,
+}
 
 REPAIR_INSTRUCTION = (
     "Your previous response could not be parsed as valid JSON matching the required schema. "
@@ -212,17 +264,17 @@ def repair_demo(broken_json: str) -> dict:
 
 
 def _escalate(priority: Priority, tone: Tone) -> tuple[Priority, bool]:
-    if tone in (Tone.ANGRY, Tone.URGENT) and priority == Priority.MEDIUM:
+    if tone in (Tone.FRUSTRATED, Tone.ANGRY, Tone.URGENT) and priority == Priority.MEDIUM:
         return Priority.HIGH, True
     return priority, False
 
 
-def _call_anthropic(client, message: str, repair: bool, prior_content=None):
+def _call_anthropic(client, message: str, system_prompt: str, schema: dict, repair: bool, prior_content=None):
     kwargs = dict(
         model=MODEL,
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        output_config={"format": {"type": "json_schema", "schema": TICKET_SCHEMA}, "effort": "low"},
+        system=system_prompt,
+        output_config={"format": {"type": "json_schema", "schema": schema}, "effort": "low"},
     )
     if repair and prior_content is not None:
         kwargs["messages"] = [
@@ -235,10 +287,10 @@ def _call_anthropic(client, message: str, repair: bool, prior_content=None):
     return client.messages.create(**kwargs)
 
 
-def _call_openai(client, message: str, repair: bool, prior_text: str | None = None):
+def _call_openai(client, message: str, system_prompt: str, schema: dict, repair: bool, prior_text: str | None = None):
     """OpenAI's chat.completions API with strict Structured Outputs — like
     Claude, the schema itself is enforced by the API, not just requested."""
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": system_prompt}]
     if repair and prior_text is not None:
         messages += [
             {"role": "user", "content": message},
@@ -253,17 +305,26 @@ def _call_openai(client, message: str, repair: bool, prior_text: str | None = No
         messages=messages,
         response_format={
             "type": "json_schema",
-            "json_schema": {"name": "ticket_classification", "schema": TICKET_SCHEMA, "strict": True},
+            "json_schema": {"name": "structured_response", "schema": schema, "strict": True},
         },
     )
 
 
-def _call_groq(client, message: str, repair: bool, prior_text: str | None = None):
+def _call_groq(client, message: str, system_prompt: str, schema: dict, repair: bool, prior_text: str | None = None):
     """Groq's chat.completions API — OpenAI-shaped, not Claude's Messages API.
     Requests JSON mode rather than a strict schema (Groq's schema enforcement
     is weaker/model-dependent), and leans on the shared _extract_json +
-    Pydantic validation + repair turn to cover the gap."""
-    messages = [{"role": "system", "content": GROQ_SYSTEM_PROMPT}]
+    Pydantic validation + repair turn to cover the gap. Groq's JSON mode only
+    guarantees syntactically valid JSON, not conformance to `schema` — and
+    requires the word "json" somewhere in the messages — so the schema is
+    spelled out in the prompt itself here, unlike Claude/OpenAI.
+    """
+    groq_system_prompt = (
+        system_prompt
+        + "\n\nRespond with ONLY a single JSON object matching this schema, no markdown fences, "
+        "no commentary:\n" + json.dumps(schema)
+    )
+    messages = [{"role": "system", "content": groq_system_prompt}]
     if repair and prior_text is not None:
         messages += [
             {"role": "user", "content": message},
@@ -322,13 +383,13 @@ def _run_provider(provider: str, client, message: str) -> ClassifyOutcome:
 
     try:
         if provider == "anthropic":
-            response = _call_anthropic(client, message, repair=False)
+            response = _call_anthropic(client, message, SYSTEM_PROMPT, TICKET_SCHEMA, repair=False)
             if response.stop_reason == "refusal":
                 raise ValueError("model refused to classify this ticket")
             text = next((b.text for b in response.content if b.type == "text"), "")
         else:
             call = _call_openai if provider == "openai" else _call_groq
-            response = call(client, message, repair=False)
+            response = call(client, message, SYSTEM_PROMPT, TICKET_SCHEMA, repair=False)
             if response.choices[0].finish_reason == "content_filter":
                 raise ValueError("model refused to classify this ticket")
             text = response.choices[0].message.content or ""
@@ -343,11 +404,11 @@ def _run_provider(provider: str, client, message: str) -> ClassifyOutcome:
         # Repair path: give the model one chance to fix its own output.
         try:
             if provider == "anthropic":
-                repaired = _call_anthropic(client, message, repair=True, prior_content=response.content)
+                repaired = _call_anthropic(client, message, SYSTEM_PROMPT, TICKET_SCHEMA, repair=True, prior_content=response.content)
                 text = next((b.text for b in repaired.content if b.type == "text"), "")
             else:
                 call = _call_openai if provider == "openai" else _call_groq
-                repaired = call(client, message, repair=True, prior_text=response.choices[0].message.content or "")
+                repaired = call(client, message, SYSTEM_PROMPT, TICKET_SCHEMA, repair=True, prior_text=response.choices[0].message.content or "")
                 text = repaired.choices[0].message.content or ""
 
             data = _extract_json(text)
@@ -386,6 +447,49 @@ def classify_with_all_providers(message: str) -> list[tuple[str, ClassifyOutcome
     compare)."""
     providers = _available_providers()
     return [(p, _run_provider(p, _get_client(p), message)) for p in providers]
+
+
+def suggest_resolution(message: str) -> dict:
+    """Best-effort self-service suggestion shown to the customer before a
+    ticket is ever created. Unlike classify_ticket, there's no keyword-based
+    fallback that makes sense here — if this fails, isn't configured, or the
+    model can't help, the customer just proceeds straight to raising a real
+    ticket, so a single attempt with no repair turn is proportionate to how
+    much this feature actually matters."""
+    providers = _available_providers()
+    if not providers:
+        return {"available": False, "can_likely_self_resolve": False, "summary": None, "steps": []}
+
+    provider = providers[0]
+    client = _get_client(provider)
+    try:
+        if provider == "anthropic":
+            response = _call_anthropic(client, message, SUGGESTION_SYSTEM_PROMPT, SUGGESTION_SCHEMA, repair=False)
+            if response.stop_reason == "refusal":
+                raise ValueError("model declined to help with this")
+            text = next((b.text for b in response.content if b.type == "text"), "")
+        else:
+            call = _call_openai if provider == "openai" else _call_groq
+            response = call(client, message, SUGGESTION_SYSTEM_PROMPT, SUGGESTION_SCHEMA, repair=False)
+            if response.choices[0].finish_reason == "content_filter":
+                raise ValueError("model declined to help with this")
+            text = response.choices[0].message.content or ""
+
+        data = _extract_json(text)
+        if data is None:
+            raise ValueError("could not parse JSON from response")
+        suggestion = ResolutionSuggestion.model_validate(data)
+        return {
+            "available": True,
+            "can_likely_self_resolve": suggestion.can_likely_self_resolve,
+            "summary": suggestion.summary,
+            "steps": suggestion.steps,
+        }
+    except Exception:
+        # Any failure here (parse error, validation error, refusal, network/
+        # quota trouble) collapses to the same outcome: no suggestion, and
+        # the customer proceeds straight to raising a real ticket.
+        return {"available": False, "can_likely_self_resolve": False, "summary": None, "steps": []}
 
 
 def build_ticket_result(message: str, manual_time_seconds: float | None, compare: bool) -> dict:

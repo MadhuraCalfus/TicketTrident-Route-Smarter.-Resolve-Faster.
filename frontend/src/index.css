@@ -10,9 +10,9 @@
      the loud original indigo. Priority colors (high/medium/low) are kept
      as red/amber/green on purpose — that's a severity convention
      non-technical users already recognize, not a brand-color choice. */
-  --color-canvas: #f7f7f6;
+  --color-canvas: #eeece8;
   --color-canvas-dark: #121212;
-  --color-surface: #ffffff;
+  --color-surface: #f7f6f3;
   --color-surface-dark: #1c1c1e;
   --color-ink: #1a1a1a;
   --color-ink-dark: #f2f2f2;
@@ -66,11 +66,9 @@ body {
 .auth-backdrop {
   background-color: var(--color-canvas);
   background-image:
-    radial-gradient(circle at 15% 10%, rgba(61, 107, 150, 0.20), transparent 45%),
-    radial-gradient(circle at 85% 0%, rgba(61, 107, 150, 0.14), transparent 42%),
-    radial-gradient(circle at 50% 100%, rgba(47, 143, 91, 0.10), transparent 50%),
-    radial-gradient(circle, rgba(61, 107, 150, 0.5) 1px, transparent 1px);
-  background-size: auto, auto, auto, 26px 26px;
+    radial-gradient(circle at 12% 8%, rgba(20, 40, 64, 0.38), transparent 48%),
+    radial-gradient(circle at 88% 4%, rgba(29, 53, 87, 0.26), transparent 46%),
+    radial-gradient(circle at 50% 105%, rgba(16, 46, 34, 0.20), transparent 55%);
 }
 :root[data-theme="dark"] .auth-backdrop {
   background-color: var(--color-canvas-dark);
@@ -79,6 +77,34 @@ body {
   :root:not([data-theme="light"]) .auth-backdrop {
     background-color: var(--color-canvas-dark);
   }
+}
+
+.auth-float-icon {
+  opacity: 0.38;
+  color: var(--color-brand);
+  animation-name: auth-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+:root[data-theme="dark"] .auth-float-icon {
+  opacity: 0.28;
+  color: var(--color-brand-dim);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .auth-float-icon {
+    opacity: 0.28;
+    color: var(--color-brand-dim);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-float-icon {
+    animation: none;
+  }
+}
+
+@keyframes auth-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(4deg); }
 }
 
 ::selection {

@@ -37,6 +37,7 @@ class Tone(str, Enum):
     ANGRY = "angry"
     URGENT = "urgent"
     CONFUSED = "confused"
+    WORRIED = "worried"
     POSITIVE = "positive"
 
 
@@ -57,6 +58,16 @@ class TicketClassification(BaseModel):
     confidence: float = Field(ge=0, le=1, description="0-1 confidence in this classification")
     is_ambiguous: bool = Field(description="True if the ticket could reasonably fit more than one category")
     reasoning: str = Field(description="One-line explanation of the routing decision")
+
+
+class ResolutionSuggestion(BaseModel):
+    """Schema the model must fill in for the customer-facing self-service
+    suggestion shown before a ticket is ever created — a different shape
+    from TicketClassification since this isn't a routing decision."""
+
+    can_likely_self_resolve: bool
+    summary: str = Field(description="One short sentence naming the likely underlying issue")
+    steps: list[str] = Field(max_length=6, description="Concrete steps the customer can try themselves")
 
 
 class RouteRequest(BaseModel):
@@ -141,6 +152,15 @@ class TeamMemberCreateRequest(BaseModel):
     team: Team
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=200)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6, max_length=200)
+
+
 class NewTicketRequest(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
 
@@ -149,8 +169,8 @@ class TicketStatusUpdateRequest(BaseModel):
     status: TicketStatus
 
 
-class BulkRouteRequest(BaseModel):
-    ticket_ids: list[int] = Field(min_length=1, max_length=100)
+class TicketCommentRequest(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
 
 
 class AdminAssignRequest(BaseModel):

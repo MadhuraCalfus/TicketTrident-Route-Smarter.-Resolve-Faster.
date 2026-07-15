@@ -2,7 +2,6 @@
 from collections import Counter
 
 from . import store
-from .models import Team
 
 
 def _bucket(rows: list[dict], field: str) -> dict[str, int]:
@@ -30,6 +29,7 @@ def compute_analytics() -> dict:
             "team_breakdown": {},
             "tone_breakdown": {},
             "mode_breakdown": {},
+            "status_breakdown": {},
             "ambiguous_count": 0,
             "escalated_count": 0,
             "feedback_count": 0,
@@ -60,6 +60,10 @@ def compute_analytics() -> dict:
         "team_breakdown": _bucket(rows, "team"),
         "tone_breakdown": _bucket(rows, "tone"),
         "mode_breakdown": _bucket(rows, "mode"),
+        # Unlike the breakdowns above, status is never null (every ticket
+        # defaults to "New"), so New tickets show up here even though they
+        # have no category/priority/team/tone yet.
+        "status_breakdown": dict(Counter(r["status"] for r in rows)),
         "ambiguous_count": sum(1 for r in rows if r["is_ambiguous"]),
         "escalated_count": sum(1 for r in rows if r["escalated"]),
         "feedback_count": len(reviewed),
@@ -69,11 +73,11 @@ def compute_analytics() -> dict:
 
 def compute_team_summary() -> dict:
     """Per-team workload: how many of that team's tickets are assigned
-    (just routed, not started), in progress, or resolved. Every team shows
-    up even with zero tickets, so an empty team is visibly empty rather
-    than just missing."""
+    (just routed, not started), in progress, or resolved. Every team that
+    actually exists in this deployment shows up even with zero tickets, so
+    an empty team is visibly empty rather than just missing."""
     rows = store.list_tickets(limit=100000, offset=0)
-    counts = {t.value: {"assigned": 0, "in_progress": 0, "resolved": 0} for t in Team}
+    counts = {team: {"assigned": 0, "in_progress": 0, "resolved": 0} for team in store.list_known_teams()}
 
     for r in rows:
         team = r.get("team")

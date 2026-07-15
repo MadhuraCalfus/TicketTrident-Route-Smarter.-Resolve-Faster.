@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Moon, Sun, UserPlus } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../hooks/useTheme";
+import { AuthFloatingIcons } from "../components/AuthFloatingIcons";
 import { Button, Card } from "../components/primitives";
 
 export function SignupPage() {
@@ -30,8 +31,9 @@ export function SignupPage() {
   }
 
   return (
-    <div className="auth-backdrop flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm p-6">
+    <div className="auth-backdrop relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AuthFloatingIcons />
+      <Card className="relative z-10 w-full max-w-sm p-6">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white">🎟️</span>

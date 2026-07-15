@@ -44,7 +44,7 @@ export function AdminDashboard() {
         userLabel="Admin"
         onLogout={logout}
       />
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className={`mx-auto px-4 py-8 ${tab === "all" ? "max-w-[1600px]" : "max-w-6xl"}`}>
         {tab === "queue" && <NewTicketsQueuePage />}
         {tab === "all" && <AllTicketsPage />}
         {tab === "teams" && <TeamsOverviewPage />}

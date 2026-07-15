@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { LogIn, Moon, Shield, Sun, User, Users } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../hooks/useTheme";
+import { AuthFloatingIcons } from "../components/AuthFloatingIcons";
 import { Button, Card } from "../components/primitives";
 
 const ROLE_TABS = [
@@ -45,8 +46,9 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-backdrop flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm p-6">
+    <div className="auth-backdrop relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AuthFloatingIcons />
+      <Card className="relative z-10 w-full max-w-sm p-6">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white">🎟️</span>
@@ -73,7 +75,7 @@ export function LoginPage() {
               className={clsx(
                 "flex flex-col items-center gap-1 rounded-lg py-2 text-xs font-medium transition",
                 roleTab === id
-                  ? "bg-white dark:bg-surface-dark text-brand dark:text-brand-dim shadow-sm"
+                  ? "bg-surface dark:bg-surface-dark text-brand dark:text-brand-dim shadow-sm"
                   : "text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark",
               )}
             >

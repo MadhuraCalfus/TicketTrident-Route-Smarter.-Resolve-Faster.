@@ -6,10 +6,24 @@ import { generateAnalyticsPdf } from "../reportPdf";
 import { Card } from "./primitives";
 
 const PRIORITY_COLORS = { High: "#c0392b", Medium: "#b8860b", Low: "#2f8f5b" };
+const STATUS_COLORS = { New: "#64748b", Routed: "#3d6b96", "In Progress": "#b8860b", Resolved: "#2f8f5b" };
+const STATUS_ORDER = ["New", "Routed", "In Progress", "Resolved"];
+const MODE_COLORS = { live: "#3d6b96", repaired: "#b8860b", fallback: "#c0392b", mock: "#94a3b8" };
+const MODE_ORDER = ["live", "repaired", "fallback", "mock"];
+const MODE_LABELS = { live: "Live", repaired: "Self-repaired JSON", fallback: "Fallback baseline", mock: "Keyword baseline" };
 const PALETTE = ["#3d6b96", "#7fa8c9", "#9a9a9f", "#c0392b", "#b8860b", "#2f8f5b", "#5a5a5e", "#8a8a8f"];
 
 function toChartData(breakdown) {
   return Object.entries(breakdown).map(([name, value]) => ({ name, value }));
+}
+
+// Status and mode both have a natural priority order (unlike the other
+// breakdowns, which are unordered categories) — sort by that instead of
+// whatever order the backend's Counter happened to emit.
+function toOrderedChartData(breakdown, order, labels) {
+  return order
+    .filter((name) => breakdown[name] != null)
+    .map((name) => ({ name: labels?.[name] ?? name, key: name, value: breakdown[name] }));
 }
 
 export function AnalyticsTab() {
@@ -65,12 +79,45 @@ export function AnalyticsTab() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Tickets routed" value={String(data.total_tickets)} />
-        <StatCard label="Avg. AI time" value={`${data.avg_ai_latency_ms.toFixed(0)}ms`} sub="per ticket" />
+        <StatCard label="Avg. AI time" value={`${(data.avg_ai_latency_ms / 1000).toFixed(2)}s`} sub={`per ticket (${data.avg_ai_latency_ms.toFixed(0)}ms)`} />
         <StatCard label="Avg. manual time" value={`${data.avg_manual_seconds.toFixed(0)}s`} sub={data.measured_manual_count > 0 ? `${data.measured_manual_count} measured` : "assumed baseline"} />
-        <StatCard label="Time saved" value={`${data.time_saved_pct.toFixed(0)}%`} sub={`~${Math.round(data.total_time_saved_seconds / 60)} min total`} highlight />
+        <StatCard
+          label="Time saved"
+          value={`${data.time_saved_pct.toFixed(0)}%`}
+          sub={`~${Math.round(data.total_time_saved_seconds / 60)} min total · ${
+            data.measured_manual_count === 0
+              ? "estimated"
+              : data.measured_manual_count < data.total_tickets
+                ? `${data.measured_manual_count}/${data.total_tickets} measured`
+                : "measured"
+          }`}
+          highlight
+        />
+        
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <h3 className="mb-3 text-sm font-semibold">Status breakdown</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={toOrderedChartData(data.status_breakdown, STATUS_ORDER)}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={2}
+              >
+                {toOrderedChartData(data.status_breakdown, STATUS_ORDER).map((entry) => (
+                  <Cell key={entry.name} fill={STATUS_COLORS[entry.name] ?? "#3d6b96"} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
         <Card className="p-5">
           <h3 className="mb-3 text-sm font-semibold">Priority breakdown</h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -134,18 +181,11 @@ export function AnalyticsTab() {
             </BarChart>
           </ResponsiveContainer>
         </Card>
+
+  
+
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Flagged ambiguous" value={String(data.ambiguous_count)} sub="auto-flagged low confidence" />
-        <StatCard label="Priority escalated" value={String(data.escalated_count)} sub="due to angry/urgent tone" />
-        <StatCard label="Reviewed by human" value={String(data.feedback_count)} />
-        <StatCard
-          label="Agreement rate"
-          value={data.agreement_rate === null ? "—" : `${data.agreement_rate.toFixed(0)}%`}
-          sub={data.agreement_rate === null ? "no feedback yet" : "of reviewed tickets"}
-        />
-      </div>
     </div>
   );
 }

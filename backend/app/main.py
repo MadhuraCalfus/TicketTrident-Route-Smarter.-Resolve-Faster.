@@ -1,28 +1,44 @@
+import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from . import analytics, auth, classifier, store
+from . import analytics, auth, classifier, email_service, store, ticket_report
 from .models import (
     AdminAssignRequest,
-    BulkRouteRequest,
     DemoRunRequest,
     FeedbackRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     NewTicketRequest,
+    ResetPasswordRequest,
     RouteRequest,
     SignupRequest,
     TeamMemberCreateRequest,
+    TicketCommentRequest,
     TicketStatusUpdateRequest,
     TokenResponse,
 )
 from .sample_tickets import SAMPLE_TICKETS
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+RESET_TOKEN_MINUTES = 30
+
+# ---- ticket attachments (customer/team file uploads in a ticket's chat) --
+ALLOWED_ATTACHMENT_TYPES = {
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "application/pdf", "text/plain", "text/csv",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024  # 5MB
 
 app = FastAPI(title="TicketTrident", version="1.0.0")
 
@@ -91,6 +107,39 @@ def me(claims: dict = Depends(auth.require_any)):
     return claims
 
 
+@app.post("/api/auth/forgot-password")
+def forgot_password(req: ForgotPasswordRequest):
+    """Team-lead self-service reset. Always returns the same generic message
+    whether or not the email exists, so this can't be used to enumerate
+    which addresses have accounts."""
+    member = store.get_team_member_by_email(req.email)
+    if member:
+        token = auth.generate_reset_token()
+        expires = (datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_MINUTES)).isoformat()
+        store.set_team_member_reset_token(member["id"], token, expires)
+        reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
+        email_service.send_email(
+            member["email"],
+            "Reset your TicketTrident password",
+            f"Hi {member['name']},\n\nClick the link below to set a new password. "
+            f"This link expires in {RESET_TOKEN_MINUTES} minutes.\n\n{reset_link}\n\n"
+            "If you didn't request this, you can ignore this email.",
+        )
+    return {"message": "if that email has an account, a reset link has been sent"}
+
+
+@app.post("/api/auth/reset-password")
+def reset_password(req: ResetPasswordRequest):
+    member = store.get_team_member_by_reset_token(req.token)
+    if not member or not member["reset_token_expires"]:
+        raise HTTPException(status_code=400, detail="invalid or expired reset link")
+    if datetime.fromisoformat(member["reset_token_expires"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="invalid or expired reset link")
+    store.update_team_member_password(member["id"], auth.hash_password(req.new_password))
+    store.clear_team_member_reset_token(member["id"])
+    return {"message": "password updated"}
+
+
 # ---- admin sandbox tools (Manual vs AI Race / Demo / Analytics) ----
 # Gated behind admin login. Race and Demo classify ad-hoc/sample text for
 # demonstration purposes only — deliberately NOT persisted, so they never
@@ -131,6 +180,15 @@ def give_feedback(ticket_id: int, req: FeedbackRequest, claims: dict = Depends(a
 
 # ---- user: submit + track tickets --------------------------------------
 
+@app.post("/api/tickets/suggest")
+def suggest_ticket_resolution(req: NewTicketRequest, claims: dict = Depends(auth.require_user)):
+    """Self-service first step, before any ticket exists — not persisted, not
+    routed, nothing an Admin ever sees. If the customer says it didn't help,
+    they hit "raise a ticket" next, which is what actually calls create_ticket
+    below."""
+    return classifier.suggest_resolution(req.message)
+
+
 @app.post("/api/tickets")
 def create_ticket(req: NewTicketRequest, claims: dict = Depends(auth.require_user)):
     """A user submits a ticket. No AI call here — it stays unclassified
@@ -140,7 +198,11 @@ def create_ticket(req: NewTicketRequest, claims: dict = Depends(auth.require_use
 
 @app.get("/api/my-tickets")
 def my_tickets(claims: dict = Depends(auth.require_user)):
-    return {"tickets": store.list_tickets_for_user(int(claims["sub"]))}
+    tickets = store.list_tickets_for_user(int(claims["sub"]))
+    unread = store.unread_comment_counts([t["id"] for t in tickets], "user", str(claims["sub"]))
+    for t in tickets:
+        t["unread_comments"] = unread.get(t["id"], 0)
+    return {"tickets": tickets}
 
 
 # ---- admin: route the queue + full detail ------------------------------
@@ -161,21 +223,6 @@ def admin_route_ticket(ticket_id: int, claims: dict = Depends(auth.require_admin
     return store.apply_classification(ticket_id, result)
 
 
-@app.post("/api/admin/tickets/route-bulk")
-def admin_route_bulk(req: BulkRouteRequest, claims: dict = Depends(auth.require_admin)):
-    """Route several queued tickets in one action, each accepting the AI's
-    own pick outright — the fast path for clearing a backlog, as opposed to
-    the single-ticket flow's per-ticket review-and-override step."""
-    results = []
-    for ticket_id in req.ticket_ids:
-        ticket = store.get_ticket(ticket_id)
-        if not ticket or ticket["status"] != "New":
-            continue
-        result = classifier.build_ticket_result(ticket["message"], manual_time_seconds=None, compare=False)
-        results.append(store.apply_classification(ticket_id, result))
-    return {"results": results}
-
-
 @app.post("/api/admin/tickets/{ticket_id}/assign")
 def admin_assign_ticket(ticket_id: int, req: AdminAssignRequest, claims: dict = Depends(auth.require_admin)):
     """Finalize a routed ticket. Send back the AI's own category/priority/team
@@ -192,6 +239,20 @@ def admin_all_tickets(claims: dict = Depends(auth.require_admin)):
     return {"tickets": store.list_tickets_with_user(), "total": store.count_tickets()}
 
 
+@app.get("/api/admin/tickets/{ticket_id}/report.pdf")
+def admin_ticket_report(ticket_id: int, claims: dict = Depends(auth.require_admin)):
+    ticket = store.get_ticket_with_user(ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="ticket not found")
+    comments = store.list_ticket_comments_with_attachments(ticket_id)
+    pdf_bytes = ticket_report.generate_ticket_report(ticket, comments)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="ticket-{ticket_id}-report.pdf"'},
+    )
+
+
 @app.get("/api/admin/team-summary")
 def admin_team_summary(claims: dict = Depends(auth.require_admin)):
     return analytics.compute_team_summary()
@@ -206,14 +267,34 @@ def admin_list_team_members(claims: dict = Depends(auth.require_admin)):
 def admin_create_team_member(req: TeamMemberCreateRequest, claims: dict = Depends(auth.require_admin)):
     if store.get_team_member_by_email(req.email):
         raise HTTPException(status_code=409, detail="an account with that email already exists")
-    return store.create_team_member(req.name, req.email, auth.hash_password(req.password), req.team.value)
+    member = store.create_team_member(req.name, req.email, auth.hash_password(req.password), req.team.value)
+    emailed = email_service.send_email(
+        req.email,
+        "Your TicketTrident team account",
+        f"Hi {req.name},\n\nAn account was created for you on the {req.team.value} team.\n\n"
+        f"Email: {req.email}\nPassword: {req.password}\n\n"
+        f"Log in at {FRONTEND_URL}/login and change your password any time via \"Forgot password?\".",
+    )
+    return {**member, "emailed": emailed}
+
+
+@app.delete("/api/admin/team-members/{member_id}")
+def admin_delete_team_member(member_id: int, claims: dict = Depends(auth.require_admin)):
+    if not store.get_team_member_by_id(member_id):
+        raise HTTPException(status_code=404, detail="team member not found")
+    store.delete_team_member(member_id)
+    return {"deleted": True}
 
 
 # ---- team: work the assigned queue --------------------------------------
 
 @app.get("/api/team/tickets")
 def team_tickets(claims: dict = Depends(auth.require_team)):
-    return {"tickets": store.list_tickets_for_team(claims["team"])}
+    tickets = store.list_tickets_for_team(claims["team"])
+    unread = store.unread_comment_counts([t["id"] for t in tickets], "team", claims["team"])
+    for t in tickets:
+        t["unread_comments"] = unread.get(t["id"], 0)
+    return {"tickets": tickets}
 
 
 # Status only ever moves forward — a team can't send a ticket back to an
@@ -234,6 +315,109 @@ def team_update_status(ticket_id: int, req: TicketStatusUpdateRequest, claims: d
     if req.status.value not in allowed:
         raise HTTPException(status_code=400, detail=f"a {ticket['status']} ticket can't be moved back to {req.status.value}")
     return store.update_ticket_status(ticket_id, req.status.value)
+
+
+# ---- ticket comments: customer <-> team messaging on one ticket --------
+# Shared across roles, so it's gated by ownership checked in-handler rather
+# than a single require_* dependency: a customer only sees their own
+# ticket's thread, a team member only sees threads for tickets already
+# routed to their team, and an admin can see any of them.
+
+def _can_access_ticket_comments(ticket: dict, claims: dict) -> bool:
+    role = claims["role"]
+    if role == "admin":
+        return True
+    if role == "user":
+        return ticket["user_id"] == int(claims["sub"])
+    if role == "team":
+        return ticket.get("team") == claims.get("team")
+    return False
+
+
+# Messaging only opens once a team is actively working the ticket, and
+# locks again once it's resolved — reading old history is still fine after
+# that (handled by _can_access_ticket_comments alone), only composing new
+# messages/attachments requires the ticket to be "In Progress".
+def _ticket_messaging_open(ticket: dict) -> bool:
+    return ticket["status"] == "In Progress"
+
+
+def _viewer_key(claims: dict) -> str | None:
+    if claims["role"] == "user":
+        return str(claims["sub"])
+    if claims["role"] == "team":
+        return claims["team"]
+    return None
+
+
+@app.get("/api/tickets/{ticket_id}/comments")
+def get_ticket_comments(ticket_id: int, claims: dict = Depends(auth.require_any)):
+    ticket = store.get_ticket(ticket_id)
+    if not ticket or not _can_access_ticket_comments(ticket, claims):
+        raise HTTPException(status_code=404, detail="ticket not found")
+    return {"comments": store.list_ticket_comments(ticket_id), "messaging_open": _ticket_messaging_open(ticket)}
+
+
+@app.post("/api/tickets/{ticket_id}/comments/read")
+def mark_ticket_comments_read(ticket_id: int, claims: dict = Depends(auth.require_any)):
+    ticket = store.get_ticket(ticket_id)
+    if not ticket or not _can_access_ticket_comments(ticket, claims):
+        raise HTTPException(status_code=404, detail="ticket not found")
+    viewer_key = _viewer_key(claims)
+    if viewer_key is not None:
+        store.mark_comments_read(ticket_id, claims["role"], viewer_key)
+    return {"marked_read": True}
+
+
+@app.post("/api/tickets/{ticket_id}/comments")
+def post_ticket_comment(ticket_id: int, req: TicketCommentRequest, claims: dict = Depends(auth.require_any)):
+    ticket = store.get_ticket(ticket_id)
+    if not ticket or not _can_access_ticket_comments(ticket, claims):
+        raise HTTPException(status_code=404, detail="ticket not found")
+    if not _ticket_messaging_open(ticket):
+        raise HTTPException(status_code=400, detail="messaging is only available while a ticket is in progress")
+    return store.add_ticket_comment(ticket_id, claims["role"], claims["name"], req.body)
+
+
+@app.post("/api/tickets/{ticket_id}/attachments")
+async def post_ticket_attachment(ticket_id: int, file: UploadFile = File(...), claims: dict = Depends(auth.require_any)):
+    ticket = store.get_ticket(ticket_id)
+    if not ticket or not _can_access_ticket_comments(ticket, claims):
+        raise HTTPException(status_code=404, detail="ticket not found")
+    if not _ticket_messaging_open(ticket):
+        raise HTTPException(status_code=400, detail="messaging is only available while a ticket is in progress")
+    if file.content_type not in ALLOWED_ATTACHMENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"unsupported file type: {file.content_type}")
+
+    contents = await file.read()
+    if len(contents) > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(status_code=400, detail="file too large (max 5MB)")
+
+    return store.add_ticket_comment(
+        ticket_id,
+        claims["role"],
+        claims["name"],
+        body="",
+        attachment_data=contents,
+        attachment_name=file.filename or "attachment",
+        attachment_mime=file.content_type,
+    )
+
+
+@app.get("/api/tickets/{ticket_id}/attachments/{comment_id}")
+def get_ticket_attachment(ticket_id: int, comment_id: int, claims: dict = Depends(auth.require_any)):
+    ticket = store.get_ticket(ticket_id)
+    if not ticket or not _can_access_ticket_comments(ticket, claims):
+        raise HTTPException(status_code=404, detail="ticket not found")
+    comment = store.get_ticket_comment(comment_id)
+    if not comment or comment["ticket_id"] != ticket_id or not comment["attachment_data"]:
+        raise HTTPException(status_code=404, detail="attachment not found")
+    safe_name = (comment["attachment_name"] or "attachment").replace('"', "").replace("\n", "").replace("\r", "")
+    return Response(
+        content=comment["attachment_data"],
+        media_type=comment["attachment_mime"] or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
 
 
 @app.get("/api/analytics")

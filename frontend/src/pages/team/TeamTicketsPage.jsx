@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { ArrowDownUp, RefreshCw } from "lucide-react";
+import { ArrowDownUp, MessageCircle, RefreshCw, Search } from "lucide-react";
 import { api } from "../../api";
+import { filterTickets } from "../../filterTickets";
 import { sortTickets } from "../../sortTickets";
-import { Card, ConfidenceMeter, PriorityBadge, ToneBadge } from "../../components/primitives";
+import { Card, ConfidenceMeter, Modal, PriorityBadge, ToneBadge } from "../../components/primitives";
+import { CommentThread } from "../../components/CommentThread";
 
 const STATUS_ORDER = ["Routed", "In Progress", "Resolved"];
 
@@ -32,6 +34,8 @@ export function TeamTicketsPage() {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(null);
   const [sortBy, setSortBy] = useState("date");
+  const [search, setSearch] = useState("");
+  const [activeThread, setActiveThread] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -58,13 +62,22 @@ export function TeamTicketsPage() {
   }
 
   const openCount = tickets.filter((t) => t.status !== "Resolved").length;
-  const sorted = sortTickets(tickets, sortBy, STATUS_ORDER);
+  const sorted = sortTickets(filterTickets(tickets, search), sortBy, STATUS_ORDER);
 
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-lg font-semibold">Your team's tickets ({openCount} open)</h2>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 rounded-lg border border-black/10 dark:border-white/15 px-2 py-1 text-xs text-ink/50 dark:text-ink-dark/50">
+            <Search size={13} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by ID, name, or message..."
+              className="w-44 bg-transparent text-xs text-ink dark:text-ink-dark placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 outline-none"
+            />
+          </label>
           <label className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
             <ArrowDownUp size={13} />
             <select
@@ -88,6 +101,8 @@ export function TeamTicketsPage() {
 
       {tickets.length === 0 ? (
         <p className="mt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">Nothing assigned to your team yet.</p>
+      ) : sorted.length === 0 ? (
+        <p className="mt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">No tickets match "{search}".</p>
       ) : (
         <div className="thin-scroll mt-4 max-h-[650px] overflow-auto rounded-xl border border-black/10 dark:border-white/15">
           <table className="w-full text-left text-sm">
@@ -101,6 +116,7 @@ export function TeamTicketsPage() {
                 <th className="px-3 py-2">Confidence</th>
                 <th className="px-3 py-2">Submitted</th>
                 <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Chat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/10">
@@ -134,11 +150,45 @@ export function TeamTicketsPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-3 py-2.5">
+                    <button
+                      onClick={() => setActiveThread(t.id)}
+                      disabled={t.status !== "In Progress"}
+                      aria-label={`Message customer for ticket ${t.id}`}
+                      title={
+                        t.status === "In Progress"
+                          ? undefined
+                          : t.status === "Resolved"
+                            ? "This ticket is resolved — messaging is closed."
+                            : "Move this ticket to In Progress to start messaging the customer."
+                      }
+                      className="relative grid h-7 w-7 place-items-center rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      <MessageCircle size={15} />
+                      {t.unread_comments > 0 && (
+                        <span className="absolute -right-1 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                          {t.unread_comments}
+                        </span>
+                      )}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {activeThread && (
+        <Modal
+          title={`Ticket #${activeThread} — Messages`}
+          onClose={() => {
+            setActiveThread(null);
+            load();
+          }}
+        >
+          <CommentThread ticketId={activeThread} />
+        </Modal>
       )}
     </Card>
   );

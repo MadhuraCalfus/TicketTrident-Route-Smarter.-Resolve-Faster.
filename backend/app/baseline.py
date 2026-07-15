@@ -46,6 +46,8 @@ _URGENT_WORDS = ["urgent", "asap", "immediately", "emergency", "right now", "cri
 _ANGRY_WORDS = ["angry", "furious", "ridiculous", "unacceptable", "worst", "terrible",
                 "scam", "disgusted", "outraged", "fed up", "sick of"]
 _FRUSTRATED_WORDS = ["frustrated", "annoyed", "disappointed", "again", "still not", "third time"]
+_WORRIED_WORDS = ["worried", "concerned", "concerning", "afraid", "scared", "nervous", "anxious",
+                  "is this normal", "hope this isn't", "hope my", "is my account safe"]
 
 
 def _score_categories(text: str) -> dict[Category, int]:
@@ -66,6 +68,8 @@ def _guess_tone(text: str, raw: str) -> Tone:
         return Tone.FRUSTRATED
     if any(w in text for w in _URGENT_WORDS):
         return Tone.URGENT
+    if any(w in text for w in _WORRIED_WORDS):
+        return Tone.WORRIED
     if any(w in text for w in ["thanks", "thank you", "great", "love", "awesome"]):
         return Tone.POSITIVE
     if "?" in raw and len(raw.split()) < 8:

@@ -3,7 +3,7 @@
 
 Usage:
     python -m app.cli route "The app keeps crashing when I upload a photo"
-    python -m app.cli demo              # run all 20 bundled sample tickets
+    python -m app.cli demo              # run all 30 bundled sample tickets
     python -m app.cli health
 """
 import argparse
@@ -85,7 +85,7 @@ def main() -> None:
     p_route.add_argument("--compare", action="store_true", help="Also show the keyword-baseline result")
     p_route.set_defaults(func=cmd_route)
 
-    p_demo = sub.add_parser("demo", help="Route all 20 bundled sample tickets")
+    p_demo = sub.add_parser("demo", help="Route all 30 bundled sample tickets")
     p_demo.set_defaults(func=cmd_demo)
 
     p_health = sub.add_parser("health", help="Show whether live Claude or mock mode is active")

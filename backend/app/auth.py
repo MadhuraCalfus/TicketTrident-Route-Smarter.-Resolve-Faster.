@@ -7,6 +7,7 @@ since it's not multi-account like users/team_members and never touches the
 database (so a DB leak can't expose it).
 """
 import os
+import secrets
 import time
 
 import bcrypt
@@ -19,6 +20,10 @@ JWT_EXPIRES_SECONDS = 60 * 60 * 24 * 7  # 7 days
 
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@tickettrident.local")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def hash_password(password: str) -> str:

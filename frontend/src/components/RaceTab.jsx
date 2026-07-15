@@ -154,7 +154,7 @@ export function RaceTab() {
             <p className="text-sm text-ink/60 dark:text-ink-dark/60">
               You took <strong>{manualTime.toFixed(1)}s</strong>: {manualCategory} / {manualPriority} / {manualTeam}
             </p>
-            {stage === "ai-timing" && <p className="text-sm animate-pulse">Claude is classifying the same ticket...</p>}
+            {stage === "ai-timing" && <p className="text-sm animate-pulse">AI is classifying the same ticket...</p>}
             {stage === "result" && (
               <Button variant="ghost" onClick={reset}>
                 <RotateCcw size={15} /> Race another ticket
@@ -173,7 +173,7 @@ export function RaceTab() {
         ) : (
           <div className="mt-5 space-y-5">
             <RaceBar label="You" seconds={manualTime} maxSeconds={Math.max(manualTime, aiSeconds)} color="bg-slate-400" />
-            <RaceBar label="Claude" seconds={aiSeconds} maxSeconds={Math.max(manualTime, aiSeconds)} color="bg-brand" />
+            <RaceBar label="AI" seconds={aiSeconds} maxSeconds={Math.max(manualTime, aiSeconds)} color="bg-brand" />
 
             {speedup > 0 && (
               <div className="rounded-xl bg-brand/10 p-4 text-center">
@@ -189,7 +189,7 @@ export function RaceTab() {
                 <div className="mt-1 text-xs">{manualCategory} → {manualTeam}</div>
               </div>
               <div className="rounded-xl border border-black/10 dark:border-white/15 p-3">
-                <div className="mb-1 text-[11px] uppercase text-ink/40 dark:text-ink-dark/40">Claude's answer</div>
+                <div className="mb-1 text-[11px] uppercase text-ink/40 dark:text-ink-dark/40">AI's answer</div>
                 <PriorityBadge priority={aiResult.priority} escalated={aiResult.escalated} />
                 <div className="mt-1 text-xs">{aiResult.category} → {aiResult.team}</div>
               </div>

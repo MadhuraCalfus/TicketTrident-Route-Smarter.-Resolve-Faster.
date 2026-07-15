@@ -1,11 +1,11 @@
 import clsx from "clsx";
-import { AlertTriangle, Check, Frown, HelpCircle, Meh, Smile, Zap as ZapIcon } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Frown, HelpCircle, Meh, Smile, X, Zap as ZapIcon } from "lucide-react";
 
 export function Card({ className, children }) {
   return (
     <div
       className={clsx(
-        "rounded-2xl border border-black/8 dark:border-white/10 bg-white dark:bg-surface-dark shadow-sm shadow-black/[0.03] dark:shadow-black/20",
+        "rounded-2xl border border-black/8 dark:border-white/10 bg-surface dark:bg-surface-dark shadow-sm shadow-black/[0.03] dark:shadow-black/20",
         className,
       )}
     >
@@ -41,6 +41,7 @@ const TONE_STYLES = {
   angry: { icon: AlertTriangle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
   urgent: { icon: ZapIcon, className: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
   confused: { icon: HelpCircle, className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  worried: { icon: AlertCircle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
   positive: { icon: Smile, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
 };
 
@@ -154,6 +155,38 @@ export function StatusStepper({ status, labels = STATUS_STEPS }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export function Toast({ message }) {
+  if (!message) return null;
+  return (
+    <div className="fade-up fixed bottom-6 right-6 z-50 rounded-xl bg-ink dark:bg-ink-dark px-4 py-3 text-sm font-medium text-ink-dark dark:text-ink shadow-lg shadow-black/20">
+      {message}
+    </div>
+  );
+}
+
+export function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="fade-up w-full max-w-md rounded-2xl border border-black/8 dark:border-white/10 bg-surface dark:bg-surface-dark p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-base font-semibold text-ink dark:text-ink-dark">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="grid h-7 w-7 place-items-center rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
