@@ -231,24 +231,45 @@ def admin_new_tickets(claims: dict = Depends(auth.require_admin)):
 
 @app.post("/api/admin/tickets/{ticket_id}/route")
 def admin_route_ticket(ticket_id: int, claims: dict = Depends(auth.require_admin)):
+    """Preview only — classifies the ticket and returns the AI's pick.
+    Nothing is written to the ticket here: leaving the New Tickets queue
+    without hitting Confirm Route leaves it exactly as it was (status New,
+    unassigned). Confirm Route (admin_assign_ticket below) is the only call
+    that actually persists anything."""
     ticket = store.get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="ticket not found")
     # compare=True so the admin sees the same full picture as the Route a
     # Ticket tab (baseline + multi-model comparison), not just the bare pick.
-    result = classifier.build_ticket_result(ticket["message"], manual_time_seconds=None, compare=True)
-    return store.apply_classification(ticket_id, result)
+    return classifier.build_ticket_result(ticket["message"], manual_time_seconds=None, compare=True)
 
 
 @app.post("/api/admin/tickets/{ticket_id}/assign")
 def admin_assign_ticket(ticket_id: int, req: AdminAssignRequest, claims: dict = Depends(auth.require_admin)):
-    """Finalize a routed ticket. Send back the AI's own category/priority/team
-    unchanged to approve it as-is, or different values to override before
-    the assigned team ever sees it."""
+    """Confirm Route: the only call that actually moves a ticket from New to
+    Routed. Persists category/priority/team (the AI's pick, or the admin's
+    override) plus the rest of the classification exactly as previewed,
+    rather than re-running the classifier and risking a different result
+    than what was reviewed on screen."""
     ticket = store.get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="ticket not found")
-    return store.assign_ticket(ticket_id, req.category.value, req.priority.value, req.team.value)
+    result = {
+        "category": req.category.value,
+        "priority": req.priority.value,
+        "team": req.team.value,
+        "tone": req.tone.value,
+        "confidence": req.confidence,
+        "is_ambiguous": req.is_ambiguous,
+        "escalated": req.escalated,
+        "reasoning": req.reasoning,
+        "model_used": req.model_used,
+        "mode": req.mode,
+        "latency_ms": req.latency_ms,
+        "baseline": req.baseline.model_dump() if req.baseline else None,
+        "model_results": [m.model_dump() for m in req.model_results] if req.model_results else None,
+    }
+    return store.apply_classification(ticket_id, result)
 
 
 @app.get("/api/admin/tickets")

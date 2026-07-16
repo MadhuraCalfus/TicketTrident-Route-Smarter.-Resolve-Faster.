@@ -172,7 +172,7 @@ export function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="fade-up w-full max-w-md rounded-2xl border border-black/8 dark:border-white/10 bg-surface dark:bg-surface-dark p-5 shadow-xl"
+        className="fade-up w-full max-w-2xl rounded-2xl border border-black/8 dark:border-white/10 bg-surface dark:bg-surface-dark p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import clsx from "clsx";
 import { ArrowDownUp, MessageCircle, RefreshCw, Search } from "lucide-react";
 import { api } from "../../api";
 import { filterTickets } from "../../filterTickets";
@@ -13,6 +14,13 @@ const STATUS_ORDER = ["Routed", "In Progress", "Resolved"];
 // "Routed" (assigned, not started) doesn't matter here, since this table
 // only ever shows tickets that have already been routed to this team.
 const TEAM_STATUS_LABELS = { Routed: "New", "In Progress": "In Progress", Resolved: "Resolved" };
+
+const STATUS_TABS = [
+  { id: "all", label: "All", status: null },
+  { id: "new", label: "New", status: "Routed" },
+  { id: "in_progress", label: "In Progress", status: "In Progress" },
+  { id: "resolved", label: "Resolved", status: "Resolved" },
+];
 
 // Status only moves forward — a ticket already In Progress or Resolved
 // can't be sent back to an earlier stage. Mirrors the backend's own check
@@ -35,6 +43,7 @@ export function TeamTicketsPage() {
   const [updating, setUpdating] = useState(null);
   const [sortBy, setSortBy] = useState("date");
   const [search, setSearch] = useState("");
+  const [statusTab, setStatusTab] = useState("all");
   const [activeThread, setActiveThread] = useState(null);
 
   async function load() {
@@ -62,7 +71,9 @@ export function TeamTicketsPage() {
   }
 
   const openCount = tickets.filter((t) => t.status !== "Resolved").length;
-  const sorted = sortTickets(filterTickets(tickets, search), sortBy, STATUS_ORDER);
+  const activeStatus = STATUS_TABS.find((t) => t.id === statusTab)?.status;
+  const byStatus = activeStatus ? tickets.filter((t) => t.status === activeStatus) : tickets;
+  const sorted = sortTickets(filterTickets(byStatus, search), sortBy, STATUS_ORDER);
 
   return (
     <Card className="p-5">
@@ -99,10 +110,34 @@ export function TeamTicketsPage() {
         </div>
       </div>
 
+      {tickets.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {STATUS_TABS.map((t) => {
+            const count = t.status ? tickets.filter((x) => x.status === t.status).length : tickets.length;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setStatusTab(t.id)}
+                className={clsx(
+                  "rounded-full px-3 py-1 text-xs font-medium transition",
+                  statusTab === t.id
+                    ? "bg-brand text-white"
+                    : "bg-black/5 dark:bg-white/10 text-ink/60 dark:text-ink-dark/60 hover:bg-black/10 dark:hover:bg-white/15",
+                )}
+              >
+                {t.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {tickets.length === 0 ? (
         <p className="mt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">Nothing assigned to your team yet.</p>
       ) : sorted.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">No tickets match "{search}".</p>
+        <p className="mt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">
+          {search ? `No tickets match "${search}".` : "No tickets in this status."}
+        </p>
       ) : (
         <div className="thin-scroll mt-4 max-h-[650px] overflow-auto rounded-xl border border-black/10 dark:border-white/15">
           <table className="w-full text-left text-sm">

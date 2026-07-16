@@ -184,13 +184,28 @@ class TicketCommentRequest(BaseModel):
 
 
 class AdminAssignRequest(BaseModel):
-    """What an Admin finalizes a routed ticket with — defaults to whatever
-    the AI suggested, but the admin can change any of the three before
-    confirming, which is what actually determines which team gets it."""
+    """What an Admin confirms a previewed ticket with. The earlier preview
+    call (POST .../route) never writes to the ticket — this is what actually
+    moves it to Routed, so a ticket left unconfirmed stays untouched even
+    after the AI's pick has been previewed on screen. category/priority/team
+    default to whatever the AI suggested but the admin can override any of
+    them; the rest of the fields carry the classification exactly as
+    reviewed, since this call persists it in one shot rather than re-running
+    the classifier."""
 
     category: Category
     priority: Priority
     team: Team
+    tone: Tone
+    confidence: float = Field(ge=0, le=1)
+    is_ambiguous: bool
+    escalated: bool
+    reasoning: str
+    model_used: str
+    mode: str
+    latency_ms: int
+    baseline: Optional[BaselineResult] = None
+    model_results: Optional[list[ModelResult]] = None
 
 
 class FeedbackRequest(BaseModel):

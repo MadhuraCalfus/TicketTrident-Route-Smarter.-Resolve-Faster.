@@ -91,7 +91,7 @@ export function CommentThread({ ticketId, readOnly = false }) {
 
   return (
     <div>
-      <div className="thin-scroll flex max-h-80 min-h-[120px] flex-col gap-3 overflow-y-auto rounded-xl border border-black/8 dark:border-white/10 p-3">
+      <div className="thin-scroll flex h-[32rem] flex-col gap-3 overflow-y-auto rounded-xl border border-black/8 dark:border-white/10 p-3">
         {loading ? (
           <p className="my-auto text-center text-xs text-ink/40 dark:text-ink-dark/40">Loading...</p>
         ) : comments.length === 0 ? (

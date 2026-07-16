@@ -333,19 +333,6 @@ def update_ticket_status(ticket_id: int, status: str) -> dict | None:
         return _row_to_dict(row) if row else None
 
 
-def assign_ticket(ticket_id: int, category: str, priority: str, team: str) -> dict | None:
-    """An Admin finalizing a routed ticket — whether that's approving the
-    AI's own category/priority/team unchanged, or overriding one or more of
-    them before the assigned team ever sees it."""
-    with _conn() as conn:
-        conn.execute(
-            "UPDATE tickets SET category = ?, priority = ?, team = ? WHERE id = ?",
-            (category, priority, team, ticket_id),
-        )
-        row = conn.execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
-        return _row_to_dict(row) if row else None
-
-
 def save_feedback(ticket_id: int, corrected_category: str | None, corrected_priority: str | None,
                    corrected_team: str | None, note: str | None) -> dict | None:
     with _conn() as conn:

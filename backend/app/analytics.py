@@ -48,9 +48,16 @@ def compute_analytics() -> dict:
             "agreement_rate": None,
         }
 
-    total_ai_seconds = sum(r["latency_ms"] for r in rows) / 1000.0
-    measured = [r["manual_time_seconds"] for r in rows if r.get("manual_time_seconds") is not None]
-    total_manual_seconds = sum(measured) + (total - len(measured)) * store.ASSUMED_MANUAL_SECONDS
+    # A ticket only has latency_ms (and everything else AI-derived) once it's
+    # actually been classified — "New" tickets sitting unconfirmed in the
+    # queue have neither, so the AI-vs-manual timing math only makes sense
+    # over the ones AI has actually touched.
+    classified = [r for r in rows if r.get("latency_ms") is not None]
+    classified_count = len(classified)
+
+    total_ai_seconds = sum(r["latency_ms"] for r in classified) / 1000.0
+    measured = [r["manual_time_seconds"] for r in classified if r.get("manual_time_seconds") is not None]
+    total_manual_seconds = sum(measured) + (classified_count - len(measured)) * store.ASSUMED_MANUAL_SECONDS
 
     reviewed = [r for r in rows if r.get("reviewed")]
     corrected = [
@@ -65,8 +72,8 @@ def compute_analytics() -> dict:
         # on its own before a human or team was ever involved.
         "self_resolved_count": self_resolved_count,
         "deflection_rate_pct": round(100 * self_resolved_count / (self_resolved_count + total), 1),
-        "avg_ai_latency_ms": round(sum(r["latency_ms"] for r in rows) / total, 1),
-        "avg_manual_seconds": round(total_manual_seconds / total, 1),
+        "avg_ai_latency_ms": round(sum(r["latency_ms"] for r in classified) / classified_count, 1) if classified_count else 0,
+        "avg_manual_seconds": round(total_manual_seconds / classified_count, 1) if classified_count else store.ASSUMED_MANUAL_SECONDS,
         "measured_manual_count": len(measured),
         "total_ai_seconds": round(total_ai_seconds, 2),
         "total_manual_seconds": round(total_manual_seconds, 2),

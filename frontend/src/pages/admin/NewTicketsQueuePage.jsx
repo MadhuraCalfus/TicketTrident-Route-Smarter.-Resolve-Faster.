@@ -50,11 +50,11 @@ export function NewTicketsQueuePage() {
     setEdits((prev) => ({ ...prev, [id]: { category: result.category, priority: result.priority, team: result.team } }));
   }
 
-  // Additive, not a replace — a ticket already fetched here gets routed
-  // immediately, which the backend records by moving its status off "New".
-  // A later refresh would otherwise silently drop it (the server no longer
-  // considers it part of the "New" queue) before it's ever been confirmed,
-  // so refresh only ever adds tickets it hasn't seen yet.
+  // Additive, not a replace — previewing a ticket here doesn't persist
+  // anything (it stays "New" until Confirm Route), so a refresh would
+  // otherwise re-classify a ticket the admin is still reviewing and
+  // silently discard any edits made to it. Only tickets not already in the
+  // list get previewed.
   async function load() {
     setLoading(true);
     try {
@@ -103,7 +103,22 @@ export function NewTicketsQueuePage() {
       await Promise.all(
         ids.map((id) => {
           const { category, priority, team } = edits[id];
-          return api.adminAssignTicket(id, category, priority, team);
+          const r = routed[id];
+          return api.adminAssignTicket(id, {
+            category,
+            priority,
+            team,
+            tone: r.tone,
+            confidence: r.confidence,
+            is_ambiguous: r.is_ambiguous,
+            escalated: r.escalated,
+            reasoning: r.reasoning,
+            model_used: r.model_used,
+            mode: r.mode,
+            latency_ms: r.latency_ms,
+            baseline: r.baseline ?? null,
+            model_results: r.model_results ?? null,
+          });
         }),
       );
       // Routed and assigned — they now belong on the All Tickets page, not here.

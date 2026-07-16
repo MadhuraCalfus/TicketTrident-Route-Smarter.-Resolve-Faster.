@@ -117,10 +117,13 @@ export const api = {
 
   adminRouteTicket: (id) => request(`/admin/tickets/${id}/route`, { method: "POST" }),
 
-  adminAssignTicket: (id, category, priority, team) =>
+  // payload carries category/priority/team (AI's pick, or the admin's
+  // override) plus the rest of the previewed classification — Confirm
+  // Route persists it in one shot rather than the backend re-classifying.
+  adminAssignTicket: (id, payload) =>
     request(`/admin/tickets/${id}/assign`, {
       method: "POST",
-      body: JSON.stringify({ category, priority, team }),
+      body: JSON.stringify(payload),
     }),
 
   adminTeamSummary: () => request("/admin/team-summary"),

@@ -142,3 +142,151 @@ flowchart TD
 8. **The team resolves it** → status `Resolved`, and the chat closes on both sides.
 9. **From here it's just visible**, everywhere an Admin looks: All Tickets, the Teams workload summary, and Analytics — and an Admin can generate a full PDF report for that one ticket at any point, transcript and attachments included.
 
+---
+
+## Screenshots
+
+### Getting started
+
+**Sign in**
+Three account types — Customer, Team, and Admin — each with their own login on one page.
+
+<img src="screenshots/Sign up Sign In Page.png" width="700" />
+
+### Customer
+
+**Describe an issue**
+The customer describes a problem in plain language; AI tries to help before any ticket exists.
+
+<img src="screenshots/customer ui.png" width="700" />
+
+**AI suggests steps to try**
+AI returns concrete self-service steps and a summary — from here the customer confirms it worked or raises a ticket anyway.
+
+<img src="screenshots/customer ai resolved.png" width="700" />
+
+**Resolved by AI**
+Every issue AI solved on the spot is logged here, with the exact steps that fixed it — no ticket, no team ever involved.
+
+<img src="screenshots/customer ai history.png" width="700" />
+
+**AI defers to a human**
+For a genuine billing dispute, AI recognizes it should be handled by a person and points straight to raising a ticket instead of guessing.
+
+<img src="screenshots/customer ui 2.png" width="700" />
+
+**A freshly raised ticket**
+Right after raising a ticket it shows status "In queue", waiting for an admin to review the AI's routing.
+
+<img src="screenshots/customer my tickets.png" width="700" />
+
+**Tracking a ticket to resolution**
+The status stepper shows a ticket's full journey from In queue to Resolved.
+
+<img src="screenshots/Customer - issue resolved.png" width="700" />
+
+**New reply from the team**
+An unread-message badge on "Message team" tells the customer their assigned team just replied.
+
+<img src="screenshots/customer- chat received.png" width="700" />
+
+**Chatting with the team**
+Customer and team message each other directly on the ticket once it's In Progress, right through to resolution.
+
+<img src="screenshots/chat.png" width="700" />
+
+### Team member
+
+**Replying to a customer**
+A team member opens a ticket's chat thread to ask for more detail before working the issue.
+
+<img src="screenshots/chat application from team.png" width="700" />
+
+**Marking a ticket resolved**
+Once the issue is fixed, the team moves the ticket to Resolved, closing the chat on both sides.
+
+<img src="screenshots/Team - issue resolved.png" width="700" />
+
+### Admin
+
+**AI's classification, up close**
+Category, priority, team, tone, and confidence for one ticket, plus the naive keyword baseline shown for comparison.
+
+<img src="screenshots/Admin - routing.png" width="700" />
+
+**New Tickets queue**
+Every incoming ticket is classified automatically the moment it's seen; select any number and Confirm Route to assign them all at once.
+
+<img src="screenshots/Admin - new tickets.png" width="700" />
+
+**All Tickets**
+Every ticket ever submitted, filterable by status and by team, searchable by ID, name, or message.
+
+<img src="screenshots/Admin - all tickets.png" width="700" />
+
+**Reading a ticket's chat history**
+An admin gets a read-only view into any ticket's full conversation, without being able to reply.
+
+<img src="screenshots/Admin - access to chats.png" width="700" />
+
+**Filtered to Resolved**
+The same All Tickets table, narrowed instantly to just the resolved ones.
+
+<img src="screenshots/Admin - resolved.png" width="700" />
+
+**AI Resolved, across every customer**
+Every case where a customer's issue was closed out by AI on its own, with a running total and the exact steps it suggested.
+
+<img src="screenshots/Admin - ai resolved.png" width="700" />
+
+**Team workload**
+Assigned / in-progress / resolved counts for every team that actually exists in this deployment.
+
+<img src="screenshots/Admin - Teams.png" width="700" />
+
+**Managing team accounts**
+An admin creates a login for a support team member, scoped to exactly one team.
+
+<img src="screenshots/Admin - team members.png" width="700" />
+
+**Manual vs AI — timing yourself**
+An admin classifies a real ticket by hand with a stopwatch running, before letting AI take the exact same ticket.
+
+<img src="screenshots/Admin - manual ai race.png" width="700" />
+
+**Manual vs AI — the result**
+A genuine, measured comparison — here AI was 6x faster than manual triage on the same ticket.
+
+<img src="screenshots/Admin - manual ai race 2.png" width="700" />
+
+**Demo: 30 sample tickets**
+One click routes the full bundled demo set, spanning every tone, priority, and team.
+
+<img src="screenshots/Admin - demo 1.png" width="700" />
+
+**Demo results**
+Every one of the 30 sample tickets routed, with category, priority, team, tone, and confidence for each.
+
+<img src="screenshots/Admin -  demo.png" width="700" />
+
+**Analytics**
+Tickets routed vs. resolved by AI, time saved, tickets over time, and every breakdown in one dashboard.
+
+<img src="screenshots/Admin - analytics.png" width="700" />
+
+**Analytics, exported**
+The same numbers as a shareable PDF report, one click away from the dashboard.
+
+<img src="screenshots/Analytics report.png" width="700" />
+
+**A single ticket's full story**
+Details, the entire chat transcript, and every attachment merged into one PDF report.
+
+<img src="screenshots/Admin - entire process report.png" width="700" />
+
+### Running live
+
+**In the browser**
+TicketTrident running in Chrome at `localhost:5173` — no build step, no extra tooling, just the running app.
+
+<img src="screenshots/Screenshot 2026-07-16 at 2.16.15 PM.png" width="700" />
