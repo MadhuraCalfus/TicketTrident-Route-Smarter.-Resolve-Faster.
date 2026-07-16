@@ -20,6 +20,7 @@ from .models import (
     NewTicketRequest,
     ResetPasswordRequest,
     RouteRequest,
+    SelfResolvedRequest,
     SignupRequest,
     TeamMemberCreateRequest,
     TicketCommentRequest,
@@ -183,10 +184,19 @@ def give_feedback(ticket_id: int, req: FeedbackRequest, claims: dict = Depends(a
 @app.post("/api/tickets/suggest")
 def suggest_ticket_resolution(req: NewTicketRequest, claims: dict = Depends(auth.require_user)):
     """Self-service first step, before any ticket exists — not persisted, not
-    routed, nothing an Admin ever sees. If the customer says it didn't help,
-    they hit "raise a ticket" next, which is what actually calls create_ticket
-    below."""
+    routed. If the customer says it didn't help, they hit "raise a ticket"
+    next, which is what actually calls create_ticket below. If it did help,
+    the frontend calls mark_self_resolved instead — so an Admin can still see
+    that AI closed it out, even though no ticket/team was ever involved."""
     return classifier.suggest_resolution(req.message)
+
+
+@app.post("/api/tickets/self-resolved")
+def mark_self_resolved(req: SelfResolvedRequest, claims: dict = Depends(auth.require_user)):
+    """The customer confirmed the AI's suggestion above actually solved it —
+    logged so an Admin can see AI deflections alongside real tickets, without
+    this ever becoming a ticket or touching a team's queue."""
+    return store.save_self_resolved(int(claims["sub"]), req.message, req.summary, req.steps)
 
 
 @app.post("/api/tickets")
@@ -237,6 +247,14 @@ def admin_assign_ticket(ticket_id: int, req: AdminAssignRequest, claims: dict = 
 @app.get("/api/admin/tickets")
 def admin_all_tickets(claims: dict = Depends(auth.require_admin)):
     return {"tickets": store.list_tickets_with_user(), "total": store.count_tickets()}
+
+
+@app.get("/api/admin/self-resolved")
+def admin_self_resolved(claims: dict = Depends(auth.require_admin)):
+    """Every case where AI's self-service suggestion solved the customer's
+    issue before a ticket ever existed — visibility into deflected volume
+    that otherwise wouldn't show up anywhere in the ticket queue."""
+    return {"cases": store.list_self_resolved(), "total": store.count_self_resolved()}
 
 
 @app.get("/api/admin/tickets/{ticket_id}/report.pdf")

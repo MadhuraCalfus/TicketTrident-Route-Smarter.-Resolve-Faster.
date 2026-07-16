@@ -10,13 +10,24 @@ def _bucket(rows: list[dict], field: str) -> dict[str, int]:
     return dict(Counter(r[field] for r in rows if r.get(field) is not None))
 
 
+def _timeline(rows: list[dict]) -> list[dict]:
+    """Ticket volume per calendar day (UTC date from created_at), oldest
+    first — every ticket has a created_at regardless of routing status, so
+    this counts everything, not just routed tickets."""
+    counts = Counter(r["created_at"][:10] for r in rows if r.get("created_at"))
+    return [{"date": date, "count": counts[date]} for date in sorted(counts)]
+
+
 def compute_analytics() -> dict:
     rows = store.list_tickets(limit=100000, offset=0)
     total = len(rows)
+    self_resolved_count = store.count_self_resolved()
 
     if total == 0:
         return {
             "total_tickets": 0,
+            "self_resolved_count": self_resolved_count,
+            "deflection_rate_pct": 100.0 if self_resolved_count else 0,
             "avg_ai_latency_ms": 0,
             "avg_manual_seconds": store.ASSUMED_MANUAL_SECONDS,
             "measured_manual_count": 0,
@@ -30,6 +41,7 @@ def compute_analytics() -> dict:
             "tone_breakdown": {},
             "mode_breakdown": {},
             "status_breakdown": {},
+            "timeline": [],
             "ambiguous_count": 0,
             "escalated_count": 0,
             "feedback_count": 0,
@@ -48,6 +60,11 @@ def compute_analytics() -> dict:
 
     return {
         "total_tickets": total,
+        # Out of every interaction that started with "describe an issue" —
+        # self-resolved by AI, or an actual ticket — the share AI closed out
+        # on its own before a human or team was ever involved.
+        "self_resolved_count": self_resolved_count,
+        "deflection_rate_pct": round(100 * self_resolved_count / (self_resolved_count + total), 1),
         "avg_ai_latency_ms": round(sum(r["latency_ms"] for r in rows) / total, 1),
         "avg_manual_seconds": round(total_manual_seconds / total, 1),
         "measured_manual_count": len(measured),
@@ -64,6 +81,7 @@ def compute_analytics() -> dict:
         # defaults to "New"), so New tickets show up here even though they
         # have no category/priority/team/tone yet.
         "status_breakdown": dict(Counter(r["status"] for r in rows)),
+        "timeline": _timeline(rows),
         "ambiguous_count": sum(1 for r in rows if r["is_ambiguous"]),
         "escalated_count": sum(1 for r in rows if r["escalated"]),
         "feedback_count": len(reviewed),

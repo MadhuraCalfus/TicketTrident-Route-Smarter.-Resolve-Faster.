@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { ArrowDownUp, FileDown, Loader2, MessageCircle, RefreshCw, Search } from "lucide-react";
+import { ArrowDownUp, Building2, FileDown, Loader2, MessageCircle, RefreshCw, Search } from "lucide-react";
 import { api } from "../../api";
+import { TEAMS } from "../../constants";
 import { downloadBlob } from "../../downloadBlob";
 import { filterTickets } from "../../filterTickets";
 import { sortTickets } from "../../sortTickets";
@@ -23,6 +24,7 @@ export function AllTicketsPage() {
   const [sortBy, setSortBy] = useState("date");
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("all");
+  const [teamFilter, setTeamFilter] = useState("all");
   const [activeThread, setActiveThread] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(null);
   const [toast, setToast] = useState(null);
@@ -60,7 +62,8 @@ export function AllTicketsPage() {
 
   const activeStatus = STATUS_TABS.find((t) => t.id === statusTab)?.status;
   const byStatus = activeStatus ? tickets.filter((t) => t.status === activeStatus) : tickets;
-  const sorted = sortTickets(filterTickets(byStatus, search), sortBy, STATUS_ORDER);
+  const byTeam = teamFilter === "all" ? byStatus : byStatus.filter((t) => t.team === teamFilter);
+  const sorted = sortTickets(filterTickets(byTeam, search), sortBy, STATUS_ORDER);
 
   return (
     <Card className="p-5">
@@ -76,6 +79,21 @@ export function AllTicketsPage() {
               placeholder="Search by ID, name, or message..."
               className="w-44 bg-transparent text-xs text-ink dark:text-ink-dark placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 outline-none"
             />
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
+            <Building2 size={13} />
+            <select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-2 py-1 text-xs text-ink dark:text-ink-dark"
+            >
+              <option value="all">All teams</option>
+              {TEAMS.map((team) => (
+                <option key={team} value={team}>
+                  {team}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
             <ArrowDownUp size={13} />

@@ -79,10 +79,14 @@ is not enough information to be confident.
 - confidence is how sure you are in THIS classification (0 = pure guess, 1 = certain), not how \
 important the ticket is.
 - tone is the customer's emotional state as written (neutral, frustrated, angry, urgent, confused, \
-worried, positive) - judge it from the actual words used, not the topic. worried is anxiety about \
-a possible bad outcome ("is this normal?", "I'm concerned my data was exposed", "I hope this isn't \
-serious") — distinct from confused (doesn't understand something) and urgent (wants faster action); \
-it shows up often, but not exclusively, on Security Concern tickets.
+worried, positive) - judge it from the actual words used, not the topic, and not from how short or \
+detailed the message is. worried is anxiety about a possible bad outcome ("is this normal?", "I'm \
+concerned my data was exposed", "I hope this isn't serious") — distinct from confused (the \
+customer's own words show they don't understand something, e.g. "why is this happening?" or "I \
+don't get it") and urgent (wants faster action); it shows up often, but not exclusively, on Security \
+Concern tickets. A short or vague message is not automatically confused — a terse, flat statement \
+like "unable to login" or "app is slow" is neutral tone with low information, not confused tone; \
+only use confused when the customer's wording itself expresses not understanding something.
 - reasoning must be exactly one sentence, specific to this ticket's content.
 - The ticket may be written in any language. Understand it in its original language, but always \
 write `reasoning` in English, regardless of what language the ticket itself is in.
@@ -100,7 +104,7 @@ Triage with low confidence and is_ambiguous=true, and use reasoning to say what'
 Worked examples, for calibration — match this style and level of specificity in your own reasoning, not these exact words:
 1. "I noticed a login from a country I don't recognize, can someone check this? I hope my account is okay." -> category=Security Concern, priority=High, team=Security Team, tone=worried, confidence=0.9, is_ambiguous=false. Reasoning: an unrecognized login location suggests possible unauthorized account access, and the customer expresses concern rather than anger.
 2. "This is ridiculous!! The dark mode toggle resets every single time I refresh the page!!!" -> category=Bug Report, priority=Low, team=Engineering, tone=angry, confidence=0.85, is_ambiguous=false. Reasoning: a cosmetic UI settings bug, regardless of how angrily it's phrased.
-3. "not working" -> category=General Inquiry, priority=Low, team=Triage, tone=confused, confidence=0.3, is_ambiguous=true. Reasoning: the message doesn't say what isn't working or which part of the product is affected.
+3. "not working" -> category=General Inquiry, priority=Low, team=Triage, tone=neutral, confidence=0.3, is_ambiguous=true. Reasoning: the message doesn't say what isn't working or which part of the product is affected, but nothing in the wording itself expresses confusion, so tone stays neutral.
 4. "I was double-charged for my subscription and the app also keeps crashing when I export data" -> category=Billing, priority=Medium, team=Billing Support, tone=frustrated, confidence=0.6, is_ambiguous=true. Reasoning: two distinct issues are reported; the billing dispute is treated as primary since it's mentioned first."""
 
 # The schema the model must fill in. Deliberately hand-written (rather than

@@ -91,6 +91,9 @@ export const api = {
   // ---- user ----
   suggestResolution: (message) => request("/tickets/suggest", { method: "POST", body: JSON.stringify({ message }) }),
 
+  markSelfResolved: (message, summary, steps) =>
+    request("/tickets/self-resolved", { method: "POST", body: JSON.stringify({ message, summary, steps }) }),
+
   createTicket: (message) => request("/tickets", { method: "POST", body: JSON.stringify({ message }) }),
 
   myTickets: () => request("/my-tickets"),
@@ -121,6 +124,8 @@ export const api = {
   adminTeamSummary: () => request("/admin/team-summary"),
 
   adminAllTickets: () => request("/admin/tickets"),
+
+  adminSelfResolved: () => request("/admin/self-resolved"),
 
   downloadTicketReport: (id) => downloadFile(`/admin/tickets/${id}/report.pdf`),
 

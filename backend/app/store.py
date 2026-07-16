@@ -76,6 +76,21 @@ _TICKET_COMMENT_READS_SCHEMA = """
     )
 """
 
+# A customer whose issue AI resolved before any ticket ever existed — logged
+# separately from `tickets` (rather than as a ticket with some new status)
+# because these never got a category/priority/team/status lifecycle at all;
+# they're a distinct kind of event: AI handled it, no human/team involved.
+_SELF_RESOLVED_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS self_resolved (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        summary TEXT,
+        steps_json TEXT,
+        created_at TEXT NOT NULL
+    )
+"""
+
 _sandbox_user_id: int | None = None
 
 
@@ -127,6 +142,7 @@ def init_db() -> None:
         conn.execute(_TICKETS_SCHEMA)
         conn.execute(_TICKET_COMMENTS_SCHEMA)
         conn.execute(_TICKET_COMMENT_READS_SCHEMA)
+        conn.execute(_SELF_RESOLVED_SCHEMA)
 
         # Attachment support added after ticket_comments already existed in
         # some databases — same in-place nullable-column pattern as above.
@@ -439,6 +455,41 @@ def list_tickets_with_user(limit: int = 200, offset: int = 0) -> list[dict]:
 def count_tickets() -> int:
     with _conn() as conn:
         return conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
+
+
+# ---- self-resolved (AI helped, customer confirmed, no ticket ever raised) --
+
+def save_self_resolved(user_id: int, message: str, summary: str | None, steps: list[str]) -> dict:
+    with _conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO self_resolved (user_id, message, summary, steps_json, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, message, summary, json.dumps(steps), _now()),
+        )
+        row = conn.execute("SELECT * FROM self_resolved WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return _self_resolved_row_to_dict(row)
+
+
+def list_self_resolved(limit: int = 200, offset: int = 0) -> list[dict]:
+    """Joined with the customer's name/email — powers the Admin "AI Resolved" view."""
+    with _conn() as conn:
+        rows = conn.execute(
+            """SELECT self_resolved.*, users.name AS user_name, users.email AS user_email
+               FROM self_resolved JOIN users ON self_resolved.user_id = users.id
+               ORDER BY self_resolved.created_at DESC LIMIT ? OFFSET ?""",
+            (limit, offset),
+        ).fetchall()
+        return [_self_resolved_row_to_dict(r) for r in rows]
+
+
+def count_self_resolved() -> int:
+    with _conn() as conn:
+        return conn.execute("SELECT COUNT(*) FROM self_resolved").fetchone()[0]
+
+
+def _self_resolved_row_to_dict(row: sqlite3.Row) -> dict:
+    d = dict(row)
+    d["steps"] = json.loads(d.pop("steps_json")) if d.get("steps_json") else []
+    return d
 
 
 # ---- ticket comments (customer <-> team messaging on one ticket) --------

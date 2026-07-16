@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { FileDown, RefreshCw } from "lucide-react";
 import { api } from "../api";
 import { generateAnalyticsPdf } from "../reportPdf";
@@ -12,9 +12,17 @@ const MODE_COLORS = { live: "#3d6b96", repaired: "#b8860b", fallback: "#c0392b",
 const MODE_ORDER = ["live", "repaired", "fallback", "mock"];
 const MODE_LABELS = { live: "Live", repaired: "Self-repaired JSON", fallback: "Fallback baseline", mock: "Keyword baseline" };
 const PALETTE = ["#3d6b96", "#7fa8c9", "#9a9a9f", "#c0392b", "#b8860b", "#2f8f5b", "#5a5a5e", "#8a8a8f"];
+const RESOLUTION_COLORS = { "Resolved by AI": "#2f8f5b", "Routed to a team": "#3d6b96" };
 
 function toChartData(breakdown) {
   return Object.entries(breakdown).map(([name, value]) => ({ name, value }));
+}
+
+function toTimelineData(timeline) {
+  return timeline.map((point) => ({
+    ...point,
+    label: new Date(point.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+  }));
 }
 
 // Status and mode both have a natural priority order (unlike the other
@@ -49,13 +57,18 @@ export function AnalyticsTab() {
     );
   }
 
-  if (data.total_tickets === 0) {
+  if (data.total_tickets === 0 && data.self_resolved_count === 0) {
     return (
       <Card className="p-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">
         No tickets routed yet — try the "Route a Ticket" or "Demo" tab first, then come back here.
       </Card>
     );
   }
+
+  const resolutionSplit = [
+    { name: "Resolved by AI", value: data.self_resolved_count },
+    { name: "Routed to a team", value: data.total_tickets },
+  ];
 
   return (
     <div className="space-y-6">
@@ -77,8 +90,13 @@ export function AnalyticsTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="Tickets routed" value={String(data.total_tickets)} />
+        <StatCard
+          label="Resolved by AI"
+          value={String(data.self_resolved_count)}
+          sub={data.self_resolved_count > 0 ? "no ticket raised" : "none yet"}
+        />
         <StatCard label="Avg. AI time" value={`${(data.avg_ai_latency_ms / 1000).toFixed(2)}s`} sub={`per ticket (${data.avg_ai_latency_ms.toFixed(0)}ms)`} />
         <StatCard label="Avg. manual time" value={`${data.avg_manual_seconds.toFixed(0)}s`} sub={data.measured_manual_count > 0 ? `${data.measured_manual_count} measured` : "assumed baseline"} />
         <StatCard
@@ -93,8 +111,35 @@ export function AnalyticsTab() {
           }`}
           highlight
         />
-        
       </div>
+
+      {(data.self_resolved_count > 0 || data.total_tickets > 0) && (
+        <div className="rounded-xl bg-brand/10 p-4 text-center">
+          <div className="font-display text-2xl font-bold text-brand dark:text-brand-dim">{data.deflection_rate_pct.toFixed(0)}%</div>
+          <div className="text-xs text-ink/50 dark:text-ink-dark/50">
+            of all issues raised were resolved by AI before ever becoming a ticket ({data.self_resolved_count} of{" "}
+            {data.self_resolved_count + data.total_tickets})
+          </div>
+        </div>
+      )}
+
+      {data.timeline.length > 1 && (
+        <Card className="p-5">
+          <h3 className="mb-3 text-sm font-semibold">Tickets generated over time</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={toTimelineData(data.timeline)} margin={{ left: -16 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }}
+                labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ""}
+              />
+              <Line type="monotone" dataKey="count" name="Tickets" stroke="#3d6b96" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-5">
@@ -182,7 +227,27 @@ export function AnalyticsTab() {
           </ResponsiveContainer>
         </Card>
 
-  
+        <Card className="p-5">
+          <h3 className="mb-3 text-sm font-semibold">AI-resolved vs. routed tickets</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={resolutionSplit}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={2}
+              >
+                {resolutionSplit.map((entry) => (
+                  <Cell key={entry.name} fill={RESOLUTION_COLORS[entry.name] ?? "#3d6b96"} />
+                ))}
+              </Pie>
+              <Legend verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
 
       </div>
 

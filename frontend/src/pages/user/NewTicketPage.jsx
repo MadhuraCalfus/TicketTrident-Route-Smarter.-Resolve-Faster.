@@ -32,6 +32,16 @@ export function NewTicketPage({ onSubmitted }) {
     }
   }
 
+  async function confirmSolved() {
+    try {
+      await api.markSelfResolved(message, suggestion?.summary ?? null, suggestion?.steps ?? []);
+    } catch {
+      // Best-effort logging for the Admin's visibility only — never blocks
+      // the customer from seeing their issue is resolved.
+    }
+    setStage("resolved");
+  }
+
   async function raiseTicket() {
     setSubmitting(true);
     setError(null);
@@ -104,7 +114,7 @@ export function NewTicketPage({ onSubmitted }) {
                   ))}
                 </ol>
                 <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-black/5 dark:border-white/10 pt-4">
-                  <Button onClick={() => setStage("resolved")}>
+                  <Button onClick={confirmSolved}>
                     <CheckCircle2 size={16} /> That solved it
                   </Button>
                   <Button variant="ghost" onClick={raiseTicket} disabled={submitting}>

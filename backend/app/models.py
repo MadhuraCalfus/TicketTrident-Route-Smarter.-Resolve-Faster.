@@ -165,6 +165,16 @@ class NewTicketRequest(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
 
 
+class SelfResolvedRequest(BaseModel):
+    """Logged when a customer confirms the AI's self-service suggestion
+    solved their issue — no ticket is ever created for these, but an Admin
+    can still see that AI handled it."""
+
+    message: str = Field(min_length=1, max_length=8000)
+    summary: Optional[str] = Field(default=None, max_length=500)
+    steps: list[str] = Field(default_factory=list, max_length=6)
+
+
 class TicketStatusUpdateRequest(BaseModel):
     status: TicketStatus
 
