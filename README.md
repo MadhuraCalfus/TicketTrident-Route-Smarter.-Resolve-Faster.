@@ -283,10 +283,3 @@ The same numbers as a shareable PDF report, one click away from the dashboard.
 Details, the entire chat transcript, and every attachment merged into one PDF report.
 
 <img src="screenshots/Admin - entire process report.png" width="700" />
-
-### Running live
-
-**In the browser**
-TicketTrident running in Chrome at `localhost:5173` — no build step, no extra tooling, just the running app.
-
-<img src="screenshots/Screenshot 2026-07-16 at 2.16.15 PM.png" width="700" />
