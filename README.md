@@ -16,7 +16,7 @@ Support teams drown in tickets because triage is repetitive, low-judgment work t
 Three account types, each with their own login and dashboard:
 
 ### Customer
-- Describes an issue in plain language — **AI tries to resolve it immediately**, suggesting concrete steps before any ticket is created. If that's not enough, one click ("Still not solved — raise a ticket") files a real ticket; if it helped, nothing is ever created.
+- Describes an issue in plain language — **AI tries to resolve it immediately**, suggesting concrete steps before any ticket is created. If that's not enough, one click ("Still not solved — raise a ticket") files a real ticket; if it helped ("That solved it"), no ticket is ever created — the case is just logged as AI-resolved so an Admin can still see it.
 - Tracks their own tickets and status (In queue → Assigned → In Progress → Resolved).
 - Once a ticket is **In Progress**, can message the assigned team directly on that ticket, attachments included — closed again once it's Resolved.
 
@@ -28,12 +28,13 @@ Three account types, each with their own login and dashboard:
 
 ### Admin
 - **New Tickets queue**: every incoming ticket is classified by AI automatically the moment it's seen — no manual "route" click. Review the AI's pick (or override category/priority/team), select any number, and "Confirm Route" assigns them all at once.
-- **All Tickets**: every ticket ever submitted, filterable by status, searchable by ID/customer name/message text, with a read-only view into each ticket's chat history and a one-click **PDF report** per ticket.
+- **All Tickets**: every ticket ever submitted, filterable by status and by team (dropdown), searchable by ID/customer name/message text, with a read-only view into each ticket's chat history and a one-click **PDF report** per ticket.
+- **AI Resolved**: every case where AI's self-service suggestion solved the customer's issue before a ticket ever existed — a running total, searchable by customer/message, sortable by date — visibility into deflected volume that would otherwise never show up anywhere.
 - **Teams**: workload summary (total/assigned/in-progress/resolved) across every team that actually exists in this deployment, plus a PDF export.
 - **Team Members**: create/remove team accounts.
 - **Manual vs AI Race**: pick a ticket, triage it yourself with a real stopwatch, then let AI classify the same ticket — a genuine measured comparison, not an assumed number.
 - **Demo**: routes all 30 bundled sample tickets in one pass.
-- **Analytics**: tickets routed, AI vs. manual time (clearly labeled as measured vs. assumed), status/priority/category/team/tone breakdowns, ambiguity/escalation/agreement stats — exportable as a PDF.
+- **Analytics**: tickets routed vs. resolved by AI (with a deflection-rate callout), tickets generated over time, AI vs. manual time (clearly labeled as measured vs. assumed), status/priority/category/team/tone breakdowns, ambiguity/escalation/agreement stats — exportable as a PDF.
 
 ---
 
@@ -114,7 +115,8 @@ How one issue actually moves through the system, end to end:
 ```mermaid
 flowchart TD
     A["Customer describes an issue"] --> B{"AI suggests self-service steps"}
-    B -->|"Solved"| C["Done — no ticket ever created"]
+    B -->|"Solved"| C["Logged as AI-resolved\nno ticket, no team ever involved"]
+    C --> P["Visible in Admin's AI Resolved tab + Analytics"]
     B -->|"Still stuck"| D["Raise a ticket · status: New"]
     D --> E["Admin's New Tickets queue"]
     E --> F["AI auto-classifies:\ncategory / priority / team / tone"]
@@ -131,7 +133,7 @@ flowchart TD
 ```
 
 1. **Customer describes an issue.** No ticket exists yet — AI reads it and suggests concrete steps to try immediately.
-2. **Solved?** If so, that's the end of it — nothing is ever persisted as a ticket.
+2. **Solved?** If so, no ticket is ever created — the case is logged separately as AI-resolved, so an Admin can still see it in the **AI Resolved** tab and in Analytics' deflection-rate stats.
 3. **Still stuck** → one click ("raise a ticket") actually creates it, with status `New` and no classification yet.
 4. **Admin's New Tickets queue** picks it up automatically — every ticket there gets classified by AI (category, priority, team, tone, confidence, one-line reasoning) the moment it's seen, no manual "route" click required.
 5. **Admin reviews** the AI's pick — approve it as-is, or override category/priority/team — then selects any number of reviewed tickets and hits **Confirm Route**, which assigns them all at once. Status moves to `Routed`.
