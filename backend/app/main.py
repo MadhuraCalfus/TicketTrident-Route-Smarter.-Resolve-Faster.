@@ -215,6 +215,13 @@ def my_tickets(claims: dict = Depends(auth.require_user)):
     return {"tickets": tickets}
 
 
+@app.get("/api/my-self-resolved")
+def my_self_resolved(claims: dict = Depends(auth.require_user)):
+    """A customer's own history of issues AI resolved before they ever
+    became a ticket — the self-service mirror of my_tickets above."""
+    return {"cases": store.list_self_resolved_for_user(int(claims["sub"]))}
+
+
 # ---- admin: route the queue + full detail ------------------------------
 
 @app.get("/api/admin/tickets/new")

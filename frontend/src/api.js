@@ -98,6 +98,8 @@ export const api = {
 
   myTickets: () => request("/my-tickets"),
 
+  mySelfResolved: () => request("/my-self-resolved"),
+
   // ---- ticket comments (customer <-> team, shared by whichever role owns the ticket) ----
   ticketComments: (id) => request(`/tickets/${id}/comments`),
 

@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { PlusCircle, Ticket } from "lucide-react";
+import { PlusCircle, Sparkles, Ticket } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
 import { Header } from "../../components/Header";
 import { NewTicketPage } from "./NewTicketPage";
 import { MyTicketsPage } from "./MyTicketsPage";
+import { MyResolvedIssuesPage } from "./MyResolvedIssuesPage";
 
 const TABS = [
   { id: "new", label: "New Ticket", icon: PlusCircle },
   { id: "mine", label: "My Tickets", icon: Ticket },
+  { id: "resolved", label: "Resolved by AI", icon: Sparkles },
 ];
 
 export function UserDashboard() {
@@ -38,6 +40,7 @@ export function UserDashboard() {
           />
         )}
         {tab === "mine" && <MyTicketsPage reloadKey={reloadKey} />}
+        {tab === "resolved" && <MyResolvedIssuesPage />}
       </main>
     </div>
   );

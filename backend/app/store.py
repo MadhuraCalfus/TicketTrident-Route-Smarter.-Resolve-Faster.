@@ -481,6 +481,16 @@ def list_self_resolved(limit: int = 200, offset: int = 0) -> list[dict]:
         return [_self_resolved_row_to_dict(r) for r in rows]
 
 
+def list_self_resolved_for_user(user_id: int) -> list[dict]:
+    """One customer's own AI-resolved history — powers their 'Resolved by AI'
+    tab, the self-service mirror of list_tickets_for_user."""
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM self_resolved WHERE user_id = ? ORDER BY created_at DESC", (user_id,)
+        ).fetchall()
+        return [_self_resolved_row_to_dict(r) for r in rows]
+
+
 def count_self_resolved() -> int:
     with _conn() as conn:
         return conn.execute("SELECT COUNT(*) FROM self_resolved").fetchone()[0]
